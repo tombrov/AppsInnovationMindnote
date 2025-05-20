@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "598759081807",
+    "project_id": "mindnote-825c3",
+    "storage_bucket": "mindnote-825c3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:598759081807:android:626daccef2eb9fe200273a",
+        "android_client_info": {
+          "package_name": "com.example.mindnote"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDyqhj2jMjauNantjMRAtUJd5aOqPjmalM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
