@@ -108,32 +108,39 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/moodQuestionText">
 
-        <ImageButton
+        <TextView
             android:id="@+id/moodHappy"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:layout_marginEnd="32dp"
+            android:gravity="center"
+            android:text="😊"
+            android:textSize="24sp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Happy mood"
-            android:src="@drawable/ic_mood_happy" />
+            android:contentDescription="Happy mood" />
 
-        <ImageButton
+        <TextView
             android:id="@+id/moodNeutral"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:layout_marginEnd="32dp"
+            android:gravity="center"
+            android:text="😐"
+            android:textSize="24sp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Neutral mood"
-            android:src="@drawable/ic_mood_neutral" />
+            android:contentDescription="Neutral mood" />
 
-        <ImageButton
+        <TextView
             android:id="@+id/moodSad"
             android:layout_width="48dp"
             android:layout_height="48dp"
+            android:gravity="center"
+            android:text="😢"
+            android:textSize="24sp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Sad mood"
-            android:src="@drawable/ic_mood_sad" />
+            android:contentDescription="Sad mood" />
     </LinearLayout>
+
 
     <!-- Gratitude Note Input -->
     <EditText
@@ -252,6 +259,21 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/tagsScrollView"
         app:strokeColor="#E0E0E0" />
+
+    <!-- ✅ Attached Image Preview -->
+    <ImageView
+        android:id="@+id/entryImage"
+        android:layout_width="0dp"
+        android:layout_height="200dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        android:scaleType="centerCrop"
+        android:contentDescription="Attached image"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/addPhotoButton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- Save Button -->
     <Button

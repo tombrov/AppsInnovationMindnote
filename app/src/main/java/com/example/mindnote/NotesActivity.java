@@ -14,7 +14,7 @@ import android.widget.LinearLayout;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
-import java.util.List;
+import java.util.ArrayList;
 
 public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnNoteClickListener {
 
@@ -41,7 +41,7 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
 
         // Set up RecyclerView
         notesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        notesAdapter = new NotesAdapter(dataManager.getAllEntries(), this);
+        notesAdapter = new NotesAdapter(new ArrayList<>(), this);
         notesRecyclerView.setAdapter(notesAdapter);
 
         // Set up add note button in empty state
@@ -65,17 +65,17 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
     }
 
     private void updateUI() {
-        List<JournalEntry> entries = dataManager.getAllEntries();
-        notesAdapter.updateEntries(entries);
+        dataManager.loadEntriesFromFirestore(entries -> {
+            notesAdapter.updateEntries(entries);
 
-        // Show empty state if no entries
-        if (entries.isEmpty()) {
-            emptyStateContainer.setVisibility(View.VISIBLE);
-            notesRecyclerView.setVisibility(View.GONE);
-        } else {
-            emptyStateContainer.setVisibility(View.GONE);
-            notesRecyclerView.setVisibility(View.VISIBLE);
-        }
+            if (entries.isEmpty()) {
+                emptyStateContainer.setVisibility(View.VISIBLE);
+                notesRecyclerView.setVisibility(View.GONE);
+            } else {
+                emptyStateContainer.setVisibility(View.GONE);
+                notesRecyclerView.setVisibility(View.VISIBLE);
+            }
+        });
     }
 
     private void setupBottomNavigation() {

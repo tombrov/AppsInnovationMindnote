@@ -2,10 +2,16 @@ package com.example.mindnote;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
-import android.view.MenuItem;
+import android.provider.MediaStore;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -14,8 +20,12 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.chip.Chip;
+import com.google.firebase.analytics.FirebaseAnalytics;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -25,11 +35,15 @@ import java.util.Locale;
 
 public class JournalActivity extends AppCompatActivity {
 
+    private static final int REQUEST_CODE_IMAGE_PICK = 101;
+    private static final int REQUEST_CODE_PERMISSION = 102;
+
     private BottomNavigationView bottomNavigationView;
     private ImageButton backButton;
     private ImageButton moreButton;
     private TextView dateText;
-    private ImageButton[] moodButtons;
+
+    private TextView moodHappy, moodNeutral, moodSad;
     private EditText gratitudeInput;
     private Chip tagWork, tagFamily, tagHealth, tagPersonal;
     private Button addPhotoButton;
@@ -37,131 +51,110 @@ public class JournalActivity extends AppCompatActivity {
     private TextView cancelButton;
     private ImageView entryImage;
     private int selectedMoodIndex = -1;
+
     private JournalDataManager dataManager;
     private JournalEntry currentEntry;
     private boolean isEditMode = false;
+    private FirebaseAnalytics analytics;
+    private Uri selectedImageUri;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_journal);
 
-        // Initialize data manager
-        dataManager = JournalDataManager.getInstance(this);
+        analytics = FirebaseAnalytics.getInstance(this);
+        Bundle analyticsBundle = new Bundle();
+        analyticsBundle.putString("screen", "journal_activity_opened");
+        analytics.logEvent("screen_view", analyticsBundle);
 
-        // Initialize views
+        TextView pageTitle = findViewById(R.id.pageTitle); // Replace with your actual ID
+
+        if (isEditMode) {
+            pageTitle.setText("Edit Entry");
+        } else {
+            pageTitle.setText("New Entry");
+        }
+
+        dataManager = JournalDataManager.getInstance(this);
         initViews();
 
-        // Check if we're editing an existing entry
         String entryId = getIntent().getStringExtra("entry_id");
         if (entryId != null) {
             isEditMode = true;
             currentEntry = dataManager.getEntryById(entryId);
             if (currentEntry != null) {
                 populateEntryData();
+                Bundle editBundle = new Bundle();
+                editBundle.putString("event_type", "edit_entry");
+                editBundle.putString("entry_id", entryId);
+                analytics.logEvent("journal_entry_edit", editBundle);
             } else {
-                // Entry not found, create new
                 currentEntry = new JournalEntry();
             }
         } else {
-            // Create a new entry
             currentEntry = new JournalEntry();
+            Bundle newEntryBundle = new Bundle();
+            newEntryBundle.putString("event_type", "create_entry");
+            analytics.logEvent("journal_entry_create", newEntryBundle);
         }
 
-        // Set current date
         setCurrentDate();
-
-        // Set up buttons
         setupButtons();
-
-        // Set up bottom navigation
         setupBottomNavigation();
     }
 
     private void initViews() {
-        // Top bar
         backButton = findViewById(R.id.backButton);
         moreButton = findViewById(R.id.moreButton);
-
-        // Date
         dateText = findViewById(R.id.dateText);
 
-        // Mood buttons
-        moodButtons = new ImageButton[3];
-        moodButtons[0] = findViewById(R.id.moodHappy);
-        moodButtons[1] = findViewById(R.id.moodNeutral);
-        moodButtons[2] = findViewById(R.id.moodSad);
+        moodHappy = findViewById(R.id.moodHappy);
+        moodNeutral = findViewById(R.id.moodNeutral);
+        moodSad = findViewById(R.id.moodSad);
 
-        // Gratitude input
         gratitudeInput = findViewById(R.id.gratitudeInput);
-
-        // Tags
         tagWork = findViewById(R.id.tagWork);
         tagFamily = findViewById(R.id.tagFamily);
         tagHealth = findViewById(R.id.tagHealth);
         tagPersonal = findViewById(R.id.tagPersonal);
-
-        // Action buttons
         addPhotoButton = findViewById(R.id.addPhotoButton);
         saveButton = findViewById(R.id.saveButton);
         cancelButton = findViewById(R.id.cancelButton);
-
-        // Entry image view (if it exists in the layout)
         entryImage = findViewById(R.id.entryImage);
-
-        // Bottom navigation
         bottomNavigationView = findViewById(R.id.bottomNavigation);
     }
 
     private void populateEntryData() {
-        // Set mood - IMPORTANT to call selectMood to highlight the right mood icon
-        if (currentEntry.getMood() >= 0 && currentEntry.getMood() < moodButtons.length) {
+        if (currentEntry.getMood() >= 0 && currentEntry.getMood() <= 2) {
             selectMood(currentEntry.getMood());
         }
-
-        // Set note text
         gratitudeInput.setText(currentEntry.getNote());
 
-        // Set tags
         List<String> tags = currentEntry.getTags();
         if (tags != null) {
-            for (String tag : tags) {
-                switch (tag) {
-                    case "Work":
-                        tagWork.setChecked(true);
-                        break;
-                    case "Family":
-                        tagFamily.setChecked(true);
-                        break;
-                    case "Health":
-                        tagHealth.setChecked(true);
-                        break;
-                    case "Personal":
-                        tagPersonal.setChecked(true);
-                        break;
-                }
-            }
+            if (tags.contains("Work")) tagWork.setChecked(true);
+            if (tags.contains("Family")) tagFamily.setChecked(true);
+            if (tags.contains("Health")) tagHealth.setChecked(true);
+            if (tags.contains("Personal")) tagPersonal.setChecked(true);
         }
 
-        // Set date
         dateText.setText(currentEntry.getFormattedDate());
 
-        // Handle image for demo entries
         if (entryImage != null) {
             String imagePath = currentEntry.getImagePath();
             if (JournalDataManager.isDemoImage(imagePath)) {
                 if (imagePath.equals(JournalDataManager.DEMO_IMAGE_FAMILY)) {
                     entryImage.setImageResource(R.drawable.family_sunset);
-                    entryImage.setVisibility(View.VISIBLE);
                 } else if (imagePath.equals(JournalDataManager.DEMO_IMAGE_MEDITATION)) {
                     entryImage.setImageResource(R.drawable.meditation_sunrise);
-                    entryImage.setVisibility(View.VISIBLE);
                 } else if (imagePath.equals(JournalDataManager.DEMO_IMAGE_LIGHTBULB)) {
                     entryImage.setImageResource(R.drawable.lightbulb);
-                    entryImage.setVisibility(View.VISIBLE);
-                } else {
-                    entryImage.setVisibility(View.GONE);
                 }
+                entryImage.setVisibility(View.VISIBLE);
+            } else if (imagePath != null && !imagePath.isEmpty()) {
+                Glide.with(this).load(imagePath).into(entryImage);
+                entryImage.setVisibility(View.VISIBLE);
             } else {
                 entryImage.setVisibility(View.GONE);
             }
@@ -171,78 +164,91 @@ public class JournalActivity extends AppCompatActivity {
     private void setCurrentDate() {
         if (!isEditMode) {
             SimpleDateFormat dateFormat = new SimpleDateFormat("EEEE, MMMM d, yyyy", Locale.getDefault());
-            String currentDate = dateFormat.format(new Date());
-            dateText.setText(currentDate);
+            dateText.setText(dateFormat.format(new Date()));
         }
     }
 
-    private void setupButtons() {
-        // Set up mood buttons
-        for (int i = 0; i < moodButtons.length; i++) {
-            final int index = i;
-            moodButtons[i].setOnClickListener(v -> selectMood(index));
-        }
-
-        // Back button returns to previous screen
-        backButton.setOnClickListener(v -> {
-            onBackPressed();
-        });
-
-        // More button shows options
-        moreButton.setOnClickListener(v -> {
-            Toast.makeText(JournalActivity.this, "More options", Toast.LENGTH_SHORT).show();
-        });
-
-        // Add photo button
-        addPhotoButton.setOnClickListener(v -> {
-            Toast.makeText(JournalActivity.this, "Add photo clicked", Toast.LENGTH_SHORT).show();
-        });
-
-        // Save button
-        saveButton.setOnClickListener(v -> {
-            saveEntry();
-        });
-
-        // Cancel button
-        cancelButton.setOnClickListener(v -> {
+    private void setupBottomNavigation() {
+        bottomNavigationView.setSelectedItemId(R.id.navigation_journal);
+        bottomNavigationView.setOnNavigationItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.navigation_journal) return true;
+            else if (id == R.id.navigation_notes) startActivity(new Intent(this, NotesActivity.class));
+            else if (id == R.id.navigation_home) startActivity(new Intent(this, MainActivity.class));
+            else return true;
             finish();
+            return true;
         });
     }
 
     private void selectMood(int index) {
-        // Reset all mood buttons to full opacity
-        for (ImageButton button : moodButtons) {
-            button.setAlpha(1.0f);
+        TextView[] moodViews = {moodHappy, moodNeutral, moodSad};
+
+        if (selectedMoodIndex == index) {
+            // Unselect if already selected
+            moodViews[index].setBackground(null);
+            moodViews[index].setTextColor(Color.BLACK);
+            selectedMoodIndex = -1;
+            Toast.makeText(this, "Mood unselected", Toast.LENGTH_SHORT).show();
+            return;
         }
 
-        // Select new mood and reduce its opacity to show it's selected
+        // Set selection
+        for (int i = 0; i < moodViews.length; i++) {
+            if (i == index) {
+                moodViews[i].setBackgroundResource(R.drawable.mood_selected_background);
+                moodViews[i].setTextColor(Color.WHITE);
+            } else {
+                moodViews[i].setBackground(null);
+                moodViews[i].setTextColor(Color.BLACK);
+            }
+        }
+
         selectedMoodIndex = index;
-        moodButtons[selectedMoodIndex].setAlpha(0.6f);
-
-        // Add a border or background to make the selection more obvious
-        // You could also change the background here or add a selection indicator
-
         String[] moodNames = {"Happy", "Neutral", "Sad"};
         Toast.makeText(this, "Selected mood: " + moodNames[index], Toast.LENGTH_SHORT).show();
     }
 
+
+    private void setupButtons() {
+        moodHappy.setOnClickListener(v -> selectMood(0));
+        moodNeutral.setOnClickListener(v -> selectMood(1));
+        moodSad.setOnClickListener(v -> selectMood(2));
+
+        backButton.setOnClickListener(v -> onBackPressed());
+        moreButton.setOnClickListener(v -> Toast.makeText(this, "More options", Toast.LENGTH_SHORT).show());
+
+        addPhotoButton.setOnClickListener(v -> {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                        REQUEST_CODE_PERMISSION);
+            } else {
+                pickImageFromGallery();
+            }
+        });
+
+        saveButton.setOnClickListener(v -> saveEntry());
+        cancelButton.setOnClickListener(v -> finish());
+    }
+
     private void saveEntry() {
-        // Validate input
+        String note = gratitudeInput.getText().toString().trim();
+
         if (selectedMoodIndex == -1) {
             Toast.makeText(this, "Please select your mood", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        if (gratitudeInput.getText().toString().trim().isEmpty()) {
+        if (note.isEmpty()) {
             Toast.makeText(this, "Please write a gratitude note", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // Update entry data
         currentEntry.setMood(selectedMoodIndex);
-        currentEntry.setNote(gratitudeInput.getText().toString().trim());
+        currentEntry.setNote(note);
 
-        // Get selected tags
         List<String> tags = new ArrayList<>();
         if (tagWork.isChecked()) tags.add("Work");
         if (tagFamily.isChecked()) tags.add("Family");
@@ -250,12 +256,29 @@ public class JournalActivity extends AppCompatActivity {
         if (tagPersonal.isChecked()) tags.add("Personal");
         currentEntry.setTags(tags);
 
-        // Preserve demo image path if this is a demo entry
-        if (!isEditMode) {
-            currentEntry.setImagePath(null); // Clear image path for new entries
+        if (selectedImageUri != null) {
+            uploadImageAndSaveEntry();
+        } else {
+            persistEntry();
         }
+    }
 
-        // Save entry
+    private void uploadImageAndSaveEntry() {
+        String fileName = "journal_images/" + System.currentTimeMillis() + ".jpg";
+        StorageReference storageRef = FirebaseStorage.getInstance().getReference(fileName);
+        storageRef.putFile(selectedImageUri)
+                .addOnSuccessListener(taskSnapshot ->
+                        storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                            currentEntry.setImagePath(uri.toString());
+                            persistEntry();
+                        }))
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Image upload failed", Toast.LENGTH_SHORT).show();
+                    persistEntry();
+                });
+    }
+
+    private void persistEntry() {
         if (isEditMode) {
             dataManager.updateEntry(currentEntry);
             Toast.makeText(this, "Entry updated!", Toast.LENGTH_SHORT).show();
@@ -263,45 +286,39 @@ public class JournalActivity extends AppCompatActivity {
             dataManager.addEntry(currentEntry);
             Toast.makeText(this, "Entry saved!", Toast.LENGTH_SHORT).show();
         }
-
-        // Return to previous screen
         finish();
     }
 
-    private void setupBottomNavigation() {
-        // Set Journal as selected item
-        bottomNavigationView.setSelectedItemId(R.id.navigation_journal);
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_CODE_PERMISSION &&
+                grantResults.length > 0 &&
+                grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            pickImageFromGallery();
+        } else {
+            Toast.makeText(this, "Permission denied to read media", Toast.LENGTH_SHORT).show();
+        }
+    }
 
-        // Set up bottom navigation listener
-        bottomNavigationView.setOnNavigationItemSelectedListener(
-                new BottomNavigationView.OnNavigationItemSelectedListener() {
-                    @Override
-                    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-                        int itemId = item.getItemId();
-                        if (itemId == R.id.navigation_journal) {
-                            // Already on journal page
-                            return true;
-                        } else if (itemId == R.id.navigation_notes) {
-                            // Navigate to notes
-                            Intent intent = new Intent(JournalActivity.this, NotesActivity.class);
-                            startActivity(intent);
-                            finish();
-                            return true;
-                        } else if (itemId == R.id.navigation_home) {
-                            // Return to home
-                            Intent intent = new Intent(JournalActivity.this, MainActivity.class);
-                            startActivity(intent);
-                            finish();
-                            return true;
-                        } else if (itemId == R.id.navigation_calendar) {
-                            // Handle calendar click (future feature)
-                            return true;
-                        } else if (itemId == R.id.navigation_profile) {
-                            // Handle profile click (future feature)
-                            return true;
-                        }
-                        return false;
-                    }
-                });
+    private void pickImageFromGallery() {
+        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        startActivityForResult(intent, REQUEST_CODE_IMAGE_PICK);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode,
+                                    int resultCode,
+                                    Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_CODE_IMAGE_PICK &&
+                resultCode == RESULT_OK &&
+                data != null) {
+            selectedImageUri = data.getData();
+            entryImage.setVisibility(View.VISIBLE);
+            entryImage.setImageURI(selectedImageUri);
+        }
     }
 }

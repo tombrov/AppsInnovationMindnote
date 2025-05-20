@@ -37,11 +37,11 @@
                 android:textSize="14sp"
                 tools:text="Jan 25, 2025" />
 
-            <ImageView
+            <TextView
                 android:id="@+id/moodIcon"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                tools:src="@drawable/ic_mood_happy" />
+                android:textSize="24sp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
         </LinearLayout>
 
         <!-- Note Content -->

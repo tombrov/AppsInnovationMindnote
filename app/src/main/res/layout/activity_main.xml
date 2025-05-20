@@ -57,7 +57,7 @@
                 <ImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
-                    android:src="@drawable/ic_flame"
+                    android:id="@+id/streakFlameIcon"
                     android:tint="#FF6B6B" />
 
                 <TextView

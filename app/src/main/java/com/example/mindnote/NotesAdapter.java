@@ -1,3 +1,4 @@
+
 package com.example.mindnote;
 
 import android.view.LayoutInflater;
@@ -8,6 +9,8 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.bumptech.glide.Glide;
 
 import java.util.List;
 
@@ -50,7 +53,7 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NoteViewHold
 
     class NoteViewHolder extends RecyclerView.ViewHolder {
         private TextView dateText;
-        private ImageView moodIcon;
+        private TextView moodIcon;
         private TextView noteText;
         private TextView tagsText;
         private ImageView entryImageView;
@@ -58,7 +61,7 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NoteViewHold
         public NoteViewHolder(@NonNull View itemView) {
             super(itemView);
             dateText = itemView.findViewById(R.id.dateText);
-            moodIcon = itemView.findViewById(R.id.moodIcon);
+            moodIcon = itemView.findViewById(R.id.moodIcon);  // now TextView
             noteText = itemView.findViewById(R.id.noteText);
             tagsText = itemView.findViewById(R.id.tagsText);
             entryImageView = itemView.findViewById(R.id.entryImageView);
@@ -73,7 +76,7 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NoteViewHold
 
         public void bind(JournalEntry entry) {
             dateText.setText(entry.getShortDate());
-            moodIcon.setImageResource(entry.getMoodIconResource());
+            moodIcon.setText(entry.getMoodEmoji());
             noteText.setText(entry.getNote());
 
             String tags = entry.getTagsAsString();
@@ -84,25 +87,24 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NoteViewHold
                 tagsText.setText(tags);
             }
 
-            // Check for demo images if we have an image view (optional)
             if (entryImageView != null) {
                 String imagePath = entry.getImagePath();
+
                 if (JournalDataManager.isDemoImage(imagePath)) {
-                    // Set image resource based on the marker
                     if (imagePath.equals(JournalDataManager.DEMO_IMAGE_FAMILY)) {
                         entryImageView.setImageResource(R.drawable.family_sunset);
-                        entryImageView.setVisibility(View.VISIBLE);
                     } else if (imagePath.equals(JournalDataManager.DEMO_IMAGE_MEDITATION)) {
                         entryImageView.setImageResource(R.drawable.meditation_sunrise);
-                        entryImageView.setVisibility(View.VISIBLE);
                     } else if (imagePath.equals(JournalDataManager.DEMO_IMAGE_LIGHTBULB)) {
                         entryImageView.setImageResource(R.drawable.lightbulb);
-                        entryImageView.setVisibility(View.VISIBLE);
-                    } else {
-                        entryImageView.setVisibility(View.GONE);
                     }
+                    entryImageView.setVisibility(View.VISIBLE);
+                } else if (imagePath != null && !imagePath.isEmpty()) {
+                    Glide.with(itemView.getContext())
+                            .load(imagePath)
+                            .into(entryImageView);
+                    entryImageView.setVisibility(View.VISIBLE);
                 } else {
-                    // Not a demo entry with image
                     entryImageView.setVisibility(View.GONE);
                 }
             }
