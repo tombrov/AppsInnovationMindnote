@@ -103,7 +103,9 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
                             finish();
                             return true;
                         } else if (itemId == R.id.navigation_calendar) {
-                            // Handle calendar click - for future implementation
+                            Intent intent = new Intent(NotesActivity.this, CalendarActivity.class);
+                            startActivity(intent);
+                            finish();
                             return true;
                         } else if (itemId == R.id.navigation_profile) {
                             // Handle profile click - for future implementation

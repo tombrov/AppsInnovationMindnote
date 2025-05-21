@@ -28,6 +28,9 @@
             android:name=".NotesActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".CalendarActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

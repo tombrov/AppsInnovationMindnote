@@ -61,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
             } else if (itemId == R.id.navigation_home) {
                 return true;
             } else if (itemId == R.id.navigation_calendar) {
-                Snackbar.make(findViewById(android.R.id.content), "Calendar feature coming soon", Snackbar.LENGTH_SHORT).show();
+                startActivity(new Intent(MainActivity.this, CalendarActivity.class));
                 return true;
             } else if (itemId == R.id.navigation_profile) {
                 Snackbar.make(findViewById(android.R.id.content), "Profile feature coming soon", Snackbar.LENGTH_SHORT).show();

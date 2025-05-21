@@ -86,32 +86,53 @@ public class JournalActivity extends AppCompatActivity {
 
         initViews();
 
-        String entryId = getIntent().getStringExtra("entry_id");
-        if (entryId != null) {
+        // Try to get full entry from Intent first
+        currentEntry = (JournalEntry) getIntent().getSerializableExtra("entry");
+
+        if (currentEntry != null && currentEntry.getId() != null) {
             isEditMode = true;
-            currentEntry = dataManager.getEntryById(entryId);
-            if (currentEntry != null) {
-                populateEntryData();
-                pageTitle.setText("Edit Entry");
-                deleteButton.setVisibility(View.VISIBLE);
-                deleteButton.setOnClickListener(v -> {
-                    dataManager.deleteEntry(currentEntry.getId(), success -> {
-                        if (success) {
-                            Snackbar.make(findViewById(android.R.id.content), "Entry deleted", Snackbar.LENGTH_SHORT).show();
-                            finish();
-                        } else {
-                            Snackbar.make(findViewById(android.R.id.content), "Failed to delete entry", Snackbar.LENGTH_SHORT).show();
-                        }
-                    });
+            populateEntryData();
+            pageTitle.setText("Edit Entry");
+            deleteButton.setVisibility(View.VISIBLE);
+            deleteButton.setOnClickListener(v -> {
+                dataManager.deleteEntry(currentEntry.getId(), success -> {
+                    if (success) {
+                        Snackbar.make(findViewById(android.R.id.content), "Entry deleted", Snackbar.LENGTH_SHORT).show();
+                        finish();
+                    } else {
+                        Snackbar.make(findViewById(android.R.id.content), "Failed to delete entry", Snackbar.LENGTH_SHORT).show();
+                    }
                 });
+            });
+        } else {
+            // Fallback: try by ID if passed
+            String entryId = getIntent().getStringExtra("entry_id");
+            if (entryId != null) {
+                isEditMode = true;
+                currentEntry = dataManager.getEntryById(entryId);
+                if (currentEntry != null) {
+                    populateEntryData();
+                    pageTitle.setText("Edit Entry");
+                    deleteButton.setVisibility(View.VISIBLE);
+                    deleteButton.setOnClickListener(v -> {
+                        dataManager.deleteEntry(currentEntry.getId(), success -> {
+                            if (success) {
+                                Snackbar.make(findViewById(android.R.id.content), "Entry deleted", Snackbar.LENGTH_SHORT).show();
+                                finish();
+                            } else {
+                                Snackbar.make(findViewById(android.R.id.content), "Failed to delete entry", Snackbar.LENGTH_SHORT).show();
+                            }
+                        });
+                    });
+                } else {
+                    currentEntry = new JournalEntry();
+                    pageTitle.setText("New Entry");
+                }
             } else {
                 currentEntry = new JournalEntry();
                 pageTitle.setText("New Entry");
+                deleteButton.setVisibility(View.GONE);
             }
-        } else {
-            currentEntry = new JournalEntry();
-            pageTitle.setText("New Entry");
-            deleteButton.setVisibility(View.GONE);
         }
 
         dataManager.loadTagsFromFirestore(tags -> {
@@ -211,6 +232,7 @@ public class JournalActivity extends AppCompatActivity {
             if (id == R.id.navigation_journal) return true;
             else if (id == R.id.navigation_notes) startActivity(new Intent(this, NotesActivity.class));
             else if (id == R.id.navigation_home) startActivity(new Intent(this, MainActivity.class));
+            else if (id == R.id.navigation_calendar) startActivity(new Intent(this, CalendarActivity.class));
             else return true;
             finish();
             return true;
