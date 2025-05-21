@@ -1,4 +1,3 @@
-
 package com.example.mindnote;
 
 import java.io.Serializable;
@@ -84,7 +83,7 @@ public class JournalEntry implements Serializable {
     }
 
     public String getFormattedDate() {
-        if (date == null) return "Unknown date";
+        if (date == null) return "Just Now";
         return new SimpleDateFormat("EEEE, MMMM d, yyyy", Locale.getDefault()).format(date);
     }
 

@@ -2,6 +2,7 @@ package com.example.mindnote;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.snackbar.Snackbar;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -9,7 +10,6 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -61,10 +61,10 @@ public class MainActivity extends AppCompatActivity {
             } else if (itemId == R.id.navigation_home) {
                 return true;
             } else if (itemId == R.id.navigation_calendar) {
-                Toast.makeText(this, "Calendar feature coming soon", Toast.LENGTH_SHORT).show();
+                Snackbar.make(findViewById(android.R.id.content), "Calendar feature coming soon", Snackbar.LENGTH_SHORT).show();
                 return true;
             } else if (itemId == R.id.navigation_profile) {
-                Toast.makeText(this, "Profile feature coming soon", Toast.LENGTH_SHORT).show();
+                Snackbar.make(findViewById(android.R.id.content), "Profile feature coming soon", Snackbar.LENGTH_SHORT).show();
                 return true;
             }
             return false;

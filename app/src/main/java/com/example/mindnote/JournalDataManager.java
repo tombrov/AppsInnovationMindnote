@@ -2,14 +2,18 @@ package com.example.mindnote;
 
 import android.content.Context;
 import android.util.Log;
+
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
+
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.function.Consumer;
+import java.util.Set;
 
 public class JournalDataManager {
 
@@ -20,12 +24,11 @@ public class JournalDataManager {
     private final FirebaseFirestore db;
     private final List<JournalEntry> entries = new ArrayList<>();
 
-    // Demo image constants
     public static final String DEMO_IMAGE_FAMILY = "demo_family_sunset";
     public static final String DEMO_IMAGE_MEDITATION = "demo_meditation_sunrise";
     public static final String DEMO_IMAGE_LIGHTBULB = "demo_lightbulb";
 
-    // Check if the image path matches a demo placeholder
+
     public static boolean isDemoImage(String imagePath) {
         return imagePath != null &&
                 (imagePath.equals(DEMO_IMAGE_FAMILY) ||
@@ -48,20 +51,27 @@ public class JournalDataManager {
         void onComplete(List<JournalEntry> result);
     }
 
-    // Load entries from Firestore into local memory (call on app startup or screen entry)
     public void loadEntriesFromFirestore(FirestoreCallback callback) {
         db.collection(COLLECTION_NAME)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     entries.clear();
                     for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                        if (doc.getId().equals("tags")) continue;
                         JournalEntry entry = doc.toObject(JournalEntry.class);
-                        entry.setId(doc.getId()); // Track document ID
+                        entry.setId(doc.getId());
                         entries.add(entry);
                     }
+                    entries.sort((e1, e2) -> {
+                        Date d1 = e1.getDate();
+                        Date d2 = e2.getDate();
 
-                    // Sort newest to oldest
-                    entries.sort((e1, e2) -> e2.getDate().compareTo(e1.getDate()));
+                        if (d1 == null && d2 == null) return 0;
+                        if (d1 == null) return 1;
+                        if (d2 == null) return -1;
+                        return d2.compareTo(d1);
+                    });
+
                     callback.onComplete(entries);
                 })
                 .addOnFailureListener(e -> {
@@ -70,14 +80,13 @@ public class JournalDataManager {
                 });
     }
 
-    // Add new entry to Firestore
     public void addEntry(JournalEntry entry) {
         Map<String, Object> entryMap = new HashMap<>();
         entryMap.put("note", entry.getNote());
         entryMap.put("mood", entry.getMood());
         entryMap.put("tags", entry.getTags());
         entryMap.put("imagePath", entry.getImagePath());
-        entryMap.put("date", FieldValue.serverTimestamp()); // 🔥 Important
+        entryMap.put("date", FieldValue.serverTimestamp());
 
         db.collection(COLLECTION_NAME)
                 .add(entryMap)
@@ -88,7 +97,6 @@ public class JournalDataManager {
                 .addOnFailureListener(e -> Log.e(TAG, "Add entry failed", e));
     }
 
-    // Update existing entry in Firestore by ID
     public void updateEntry(JournalEntry entry) {
         if (entry.getId() == null) {
             Log.e(TAG, "Cannot update entry — ID is null.");
@@ -102,16 +110,48 @@ public class JournalDataManager {
                 .addOnFailureListener(e -> Log.e(TAG, "Update entry failed", e));
     }
 
-    // Delete entry from Firestore
-    public void deleteEntry(String entryId) {
+    public void deleteEntry(String entryId, Consumer<Boolean> callback) {
         db.collection(COLLECTION_NAME)
                 .document(entryId)
                 .delete()
-                .addOnSuccessListener(aVoid -> Log.d(TAG, "Deleted entry ID: " + entryId))
-                .addOnFailureListener(e -> Log.e(TAG, "Delete entry failed", e));
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Deleted entry ID: " + entryId);
+                    callback.accept(true);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Delete entry failed", e);
+                    callback.accept(false);
+                });
     }
 
-    // Get entry from memory by ID
+    public void loadTagsFromFirestore(Consumer<List<String>> callback) {
+        db.collection(COLLECTION_NAME)
+                .document("tags")
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (doc.exists()) {
+                        List<String> tags = (List<String>) doc.get("tags");
+                        callback.accept(tags != null ? tags : new ArrayList<>());
+                    } else {
+                        callback.accept(new ArrayList<>());
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("TAG_LOAD", "Failed to load tags", e);
+                    callback.accept(new ArrayList<>());
+                });
+    }
+
+    public void saveTagsToFirestore(Set<String> allTags) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("tags", new ArrayList<>(allTags));
+        db.collection(COLLECTION_NAME)
+                .document("tags")
+                .set(data)
+                .addOnSuccessListener(aVoid -> Log.d("TAG_SAVE", "Tags updated"))
+                .addOnFailureListener(e -> Log.e("TAG_SAVE", "Failed to save tags", e));
+    }
+
     public JournalEntry getEntryById(String entryId) {
         for (JournalEntry entry : entries) {
             if (entry.getId() != null && entry.getId().equals(entryId)) {
@@ -121,17 +161,14 @@ public class JournalDataManager {
         return null;
     }
 
-    // Return total entries in memory
     public int getEntryCount() {
         return entries.size();
     }
 
-    // Return cached entries (for UI rendering)
     public List<JournalEntry> getAllEntriesCached() {
         return new ArrayList<>(entries);
     }
 
-    // Backward compatibility for MainActivity, NotesActivity, NotesAdapter
     public List<JournalEntry> getAllEntries() {
         return getAllEntriesCached();
     }

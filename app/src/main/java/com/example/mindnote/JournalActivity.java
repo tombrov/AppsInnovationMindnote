@@ -4,7 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-
+import com.google.android.material.snackbar.Snackbar;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -12,6 +12,12 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.util.Log;
+import android.view.KeyEvent;
+import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -23,15 +29,16 @@ import android.widget.Toast;
 import com.bumptech.glide.Glide;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
+import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.analytics.FirebaseAnalytics;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
+import com.example.mindnote.JournalDataManager;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 public class JournalActivity extends AppCompatActivity {
 
@@ -39,24 +46,29 @@ public class JournalActivity extends AppCompatActivity {
     private static final int REQUEST_CODE_PERMISSION = 102;
 
     private BottomNavigationView bottomNavigationView;
-    private ImageButton backButton;
-    private ImageButton moreButton;
-    private TextView dateText;
-
-    private TextView moodHappy, moodNeutral, moodSad;
+    private ImageButton backButton, moreButton;
+    private TextView dateText, pageTitle, moodHappy, moodNeutral, moodSad;
     private EditText gratitudeInput;
-    private Chip tagWork, tagFamily, tagHealth, tagPersonal;
-    private Button addPhotoButton;
-    private Button saveButton;
+    private Button addPhotoButton, saveButton, deleteButton;
     private TextView cancelButton;
     private ImageView entryImage;
-    private int selectedMoodIndex = -1;
+    private TextInputEditText tagInputEditText;
+    private ChipGroup tagsChipGroup;
 
+    private int selectedMoodIndex = -1;
     private JournalDataManager dataManager;
     private JournalEntry currentEntry;
     private boolean isEditMode = false;
     private FirebaseAnalytics analytics;
     private Uri selectedImageUri;
+    private FirebaseFirestore db;
+
+    private Set<String> selectedTags = new HashSet<>();
+    private Set<String> previouslyUsedTags = new HashSet<>();
+
+    private String originalNote = "";
+    private int originalMood = -1;
+    private Set<String> originalTags = new HashSet<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,19 +76,14 @@ public class JournalActivity extends AppCompatActivity {
         setContentView(R.layout.activity_journal);
 
         analytics = FirebaseAnalytics.getInstance(this);
-        Bundle analyticsBundle = new Bundle();
-        analyticsBundle.putString("screen", "journal_activity_opened");
-        analytics.logEvent("screen_view", analyticsBundle);
-
-        TextView pageTitle = findViewById(R.id.pageTitle); // Replace with your actual ID
-
-        if (isEditMode) {
-            pageTitle.setText("Edit Entry");
-        } else {
-            pageTitle.setText("New Entry");
-        }
-
+        db = FirebaseFirestore.getInstance();
         dataManager = JournalDataManager.getInstance(this);
+
+        pageTitle = findViewById(R.id.pageTitle);
+        deleteButton = findViewById(R.id.deleteEntryButton);
+        tagInputEditText = findViewById(R.id.tagInputEditText);
+        tagsChipGroup = findViewById(R.id.tagsChipGroup);
+
         initViews();
 
         String entryId = getIntent().getStringExtra("entry_id");
@@ -85,39 +92,75 @@ public class JournalActivity extends AppCompatActivity {
             currentEntry = dataManager.getEntryById(entryId);
             if (currentEntry != null) {
                 populateEntryData();
-                Bundle editBundle = new Bundle();
-                editBundle.putString("event_type", "edit_entry");
-                editBundle.putString("entry_id", entryId);
-                analytics.logEvent("journal_entry_edit", editBundle);
+                pageTitle.setText("Edit Entry");
+                deleteButton.setVisibility(View.VISIBLE);
+                deleteButton.setOnClickListener(v -> {
+                    dataManager.deleteEntry(currentEntry.getId(), success -> {
+                        if (success) {
+                            Snackbar.make(findViewById(android.R.id.content), "Entry deleted", Snackbar.LENGTH_SHORT).show();
+                            finish();
+                        } else {
+                            Snackbar.make(findViewById(android.R.id.content), "Failed to delete entry", Snackbar.LENGTH_SHORT).show();
+                        }
+                    });
+                });
             } else {
                 currentEntry = new JournalEntry();
+                pageTitle.setText("New Entry");
             }
         } else {
             currentEntry = new JournalEntry();
-            Bundle newEntryBundle = new Bundle();
-            newEntryBundle.putString("event_type", "create_entry");
-            analytics.logEvent("journal_entry_create", newEntryBundle);
+            pageTitle.setText("New Entry");
+            deleteButton.setVisibility(View.GONE);
         }
+
+        dataManager.loadTagsFromFirestore(tags -> {
+            previouslyUsedTags.addAll(tags);
+            for (String tag : previouslyUsedTags) {
+                addTagChip(tag, selectedTags.contains(tag));
+            }
+        });
+
+        tagInputEditText.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_DONE || (event != null && event.getAction() == KeyEvent.ACTION_DOWN && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
+                String newTag = tagInputEditText.getText().toString().trim();
+                if (!newTag.isEmpty() && !selectedTags.contains(newTag)) {
+                    selectedTags.add(newTag);
+                    previouslyUsedTags.add(newTag);
+                    addTagChip(newTag, true);
+                    tagInputEditText.setText("");
+                    dataManager.saveTagsToFirestore(previouslyUsedTags);
+                    checkForChanges();
+                }
+                return true;
+            }
+            return false;
+        });
 
         setCurrentDate();
         setupButtons();
         setupBottomNavigation();
+
+        if (isEditMode) {
+            saveButton.setVisibility(View.GONE);
+            cancelButton.setVisibility(View.GONE);
+        }
+
+        gratitudeInput.addTextChangedListener(new TextWatcher() {
+            public void afterTextChanged(Editable s) { checkForChanges(); }
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+        });
     }
 
     private void initViews() {
         backButton = findViewById(R.id.backButton);
         moreButton = findViewById(R.id.moreButton);
         dateText = findViewById(R.id.dateText);
-
         moodHappy = findViewById(R.id.moodHappy);
         moodNeutral = findViewById(R.id.moodNeutral);
         moodSad = findViewById(R.id.moodSad);
-
         gratitudeInput = findViewById(R.id.gratitudeInput);
-        tagWork = findViewById(R.id.tagWork);
-        tagFamily = findViewById(R.id.tagFamily);
-        tagHealth = findViewById(R.id.tagHealth);
-        tagPersonal = findViewById(R.id.tagPersonal);
         addPhotoButton = findViewById(R.id.addPhotoButton);
         saveButton = findViewById(R.id.saveButton);
         cancelButton = findViewById(R.id.cancelButton);
@@ -129,35 +172,28 @@ public class JournalActivity extends AppCompatActivity {
         if (currentEntry.getMood() >= 0 && currentEntry.getMood() <= 2) {
             selectMood(currentEntry.getMood());
         }
-        gratitudeInput.setText(currentEntry.getNote());
+        originalMood = currentEntry.getMood();
 
-        List<String> tags = currentEntry.getTags();
-        if (tags != null) {
-            if (tags.contains("Work")) tagWork.setChecked(true);
-            if (tags.contains("Family")) tagFamily.setChecked(true);
-            if (tags.contains("Health")) tagHealth.setChecked(true);
-            if (tags.contains("Personal")) tagPersonal.setChecked(true);
-        }
-
+        originalNote = currentEntry.getNote();
+        gratitudeInput.setText(originalNote);
         dateText.setText(currentEntry.getFormattedDate());
 
-        if (entryImage != null) {
-            String imagePath = currentEntry.getImagePath();
-            if (JournalDataManager.isDemoImage(imagePath)) {
-                if (imagePath.equals(JournalDataManager.DEMO_IMAGE_FAMILY)) {
-                    entryImage.setImageResource(R.drawable.family_sunset);
-                } else if (imagePath.equals(JournalDataManager.DEMO_IMAGE_MEDITATION)) {
-                    entryImage.setImageResource(R.drawable.meditation_sunrise);
-                } else if (imagePath.equals(JournalDataManager.DEMO_IMAGE_LIGHTBULB)) {
-                    entryImage.setImageResource(R.drawable.lightbulb);
-                }
-                entryImage.setVisibility(View.VISIBLE);
-            } else if (imagePath != null && !imagePath.isEmpty()) {
-                Glide.with(this).load(imagePath).into(entryImage);
-                entryImage.setVisibility(View.VISIBLE);
-            } else {
-                entryImage.setVisibility(View.GONE);
-            }
+        if (currentEntry.getTags() != null) {
+            selectedTags.addAll(currentEntry.getTags());
+            originalTags.addAll(currentEntry.getTags());
+        }
+
+        String imagePath = currentEntry.getImagePath();
+        if (JournalDataManager.isDemoImage(imagePath)) {
+            if (imagePath.equals(JournalDataManager.DEMO_IMAGE_FAMILY)) entryImage.setImageResource(R.drawable.family_sunset);
+            else if (imagePath.equals(JournalDataManager.DEMO_IMAGE_MEDITATION)) entryImage.setImageResource(R.drawable.meditation_sunrise);
+            else if (imagePath.equals(JournalDataManager.DEMO_IMAGE_LIGHTBULB)) entryImage.setImageResource(R.drawable.lightbulb);
+            entryImage.setVisibility(View.VISIBLE);
+        } else if (imagePath != null && !imagePath.isEmpty()) {
+            Glide.with(this).load(imagePath).into(entryImage);
+            entryImage.setVisibility(View.VISIBLE);
+        } else {
+            entryImage.setVisibility(View.GONE);
         }
     }
 
@@ -185,30 +221,38 @@ public class JournalActivity extends AppCompatActivity {
         TextView[] moodViews = {moodHappy, moodNeutral, moodSad};
 
         if (selectedMoodIndex == index) {
-            // Unselect if already selected
             moodViews[index].setBackground(null);
             moodViews[index].setTextColor(Color.BLACK);
             selectedMoodIndex = -1;
-            Toast.makeText(this, "Mood unselected", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // Set selection
-        for (int i = 0; i < moodViews.length; i++) {
-            if (i == index) {
-                moodViews[i].setBackgroundResource(R.drawable.mood_selected_background);
-                moodViews[i].setTextColor(Color.WHITE);
-            } else {
-                moodViews[i].setBackground(null);
-                moodViews[i].setTextColor(Color.BLACK);
+        } else {
+            for (int i = 0; i < moodViews.length; i++) {
+                if (i == index) {
+                    moodViews[i].setBackgroundResource(R.drawable.mood_selected_background);
+                    moodViews[i].setTextColor(Color.WHITE);
+                } else {
+                    moodViews[i].setBackground(null);
+                    moodViews[i].setTextColor(Color.BLACK);
+                }
             }
+            selectedMoodIndex = index;
+            String[] moodNames = {"Happy", "Neutral", "Sad"};
         }
-
-        selectedMoodIndex = index;
-        String[] moodNames = {"Happy", "Neutral", "Sad"};
-        Toast.makeText(this, "Selected mood: " + moodNames[index], Toast.LENGTH_SHORT).show();
+        checkForChanges();
     }
 
+    private void checkForChanges() {
+        boolean noteChanged = !originalNote.equals(gratitudeInput.getText().toString().trim());
+        boolean moodChanged = (originalMood != selectedMoodIndex);
+        boolean tagsChanged = !originalTags.equals(selectedTags);
+
+        if (noteChanged || moodChanged || tagsChanged) {
+            saveButton.setVisibility(View.VISIBLE);
+            cancelButton.setVisibility(View.VISIBLE);
+        } else {
+            saveButton.setVisibility(View.GONE);
+            cancelButton.setVisibility(View.GONE);
+        }
+    }
 
     private void setupButtons() {
         moodHappy.setOnClickListener(v -> selectMood(0));
@@ -216,8 +260,6 @@ public class JournalActivity extends AppCompatActivity {
         moodSad.setOnClickListener(v -> selectMood(2));
 
         backButton.setOnClickListener(v -> onBackPressed());
-        moreButton.setOnClickListener(v -> Toast.makeText(this, "More options", Toast.LENGTH_SHORT).show());
-
         addPhotoButton.setOnClickListener(v -> {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
                     != PackageManager.PERMISSION_GRANTED) {
@@ -235,26 +277,18 @@ public class JournalActivity extends AppCompatActivity {
 
     private void saveEntry() {
         String note = gratitudeInput.getText().toString().trim();
-
         if (selectedMoodIndex == -1) {
-            Toast.makeText(this, "Please select your mood", Toast.LENGTH_SHORT).show();
+            Snackbar.make(findViewById(android.R.id.content), "Please select your mood", Snackbar.LENGTH_SHORT).show();
             return;
         }
-
         if (note.isEmpty()) {
-            Toast.makeText(this, "Please write a gratitude note", Toast.LENGTH_SHORT).show();
+            Snackbar.make(findViewById(android.R.id.content), "Please write a gratitude note", Snackbar.LENGTH_SHORT).show();
             return;
         }
 
         currentEntry.setMood(selectedMoodIndex);
         currentEntry.setNote(note);
-
-        List<String> tags = new ArrayList<>();
-        if (tagWork.isChecked()) tags.add("Work");
-        if (tagFamily.isChecked()) tags.add("Family");
-        if (tagHealth.isChecked()) tags.add("Health");
-        if (tagPersonal.isChecked()) tags.add("Personal");
-        currentEntry.setTags(tags);
+        currentEntry.setTags(new ArrayList<>(selectedTags));
 
         if (selectedImageUri != null) {
             uploadImageAndSaveEntry();
@@ -273,7 +307,7 @@ public class JournalActivity extends AppCompatActivity {
                             persistEntry();
                         }))
                 .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Image upload failed", Toast.LENGTH_SHORT).show();
+                    Snackbar.make(findViewById(android.R.id.content), "Image upload failed", Snackbar.LENGTH_SHORT).show();
                     persistEntry();
                 });
     }
@@ -281,25 +315,57 @@ public class JournalActivity extends AppCompatActivity {
     private void persistEntry() {
         if (isEditMode) {
             dataManager.updateEntry(currentEntry);
-            Toast.makeText(this, "Entry updated!", Toast.LENGTH_SHORT).show();
+            Snackbar.make(findViewById(android.R.id.content), "Entry updated!", Snackbar.LENGTH_SHORT).show();
         } else {
             dataManager.addEntry(currentEntry);
-            Toast.makeText(this, "Entry saved!", Toast.LENGTH_SHORT).show();
+            Snackbar.make(findViewById(android.R.id.content), "Entry saved!", Snackbar.LENGTH_SHORT).show();
         }
         finish();
     }
 
+    private void addTagChip(String tag, boolean selected) {
+        Chip chip = new Chip(this);
+        chip.setText(tag);
+        chip.setCheckable(true);
+        chip.setChecked(selected);
+
+        // Style to match predefined chips
+        chip.setTextSize(14);
+        chip.setChipStartPadding(12f);
+        chip.setChipEndPadding(12f);
+        chip.setChipBackgroundColorResource(R.color.white);
+        chip.setChipStrokeWidth(1f);
+        chip.setChipStrokeColorResource(R.color.light_gray);
+        chip.setTextColor(ContextCompat.getColor(this, R.color.black));
+        chip.setElevation(2f); // Optional shadow
+
+        // Add margin to the chip for spacing
+        ViewGroup.MarginLayoutParams params = new ViewGroup.MarginLayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        params.setMargins(8, 0, 8, 0); // horizontal spacing
+        chip.setLayoutParams(params);
+
+        chip.setOnClickListener(v -> {
+            if (chip.isChecked()) {
+                selectedTags.add(tag);
+            } else {
+                selectedTags.remove(tag);
+            }
+            checkForChanges();
+        });
+
+        tagsChipGroup.addView(chip);
+    }
+
     @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == REQUEST_CODE_PERMISSION &&
-                grantResults.length > 0 &&
-                grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+        if (requestCode == REQUEST_CODE_PERMISSION && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             pickImageFromGallery();
         } else {
-            Toast.makeText(this, "Permission denied to read media", Toast.LENGTH_SHORT).show();
+            Snackbar.make(findViewById(android.R.id.content), "Permission denied to read media", Snackbar.LENGTH_SHORT).show();
         }
     }
 
@@ -309,16 +375,13 @@ public class JournalActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onActivityResult(int requestCode,
-                                    int resultCode,
-                                    Intent data) {
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_CODE_IMAGE_PICK &&
-                resultCode == RESULT_OK &&
-                data != null) {
+        if (requestCode == REQUEST_CODE_IMAGE_PICK && resultCode == RESULT_OK && data != null) {
             selectedImageUri = data.getData();
             entryImage.setVisibility(View.VISIBLE);
             entryImage.setImageURI(selectedImageUri);
+            checkForChanges();
         }
     }
 }
