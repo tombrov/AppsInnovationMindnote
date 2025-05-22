@@ -85,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
         int entryCount = dataManager.getEntryCount();
 
         TextView streakTextView = findViewById(R.id.streakTextView);
-        ImageView streakFlameIcon = findViewById(R.id.streakFlameIcon);
+        TextView streakFlameIcon = findViewById(R.id.streakFlameIcon);
         TextView entriesTextView = findViewById(R.id.entriesTextView);
 
         int streak = calculateStreak();
@@ -95,12 +95,14 @@ public class MainActivity extends AppCompatActivity {
 
         if (streakFlameIcon != null) {
             streakFlameIcon.setVisibility(streak >= 3 ? View.VISIBLE : View.GONE);
+            streakFlameIcon.setText("🔥"); // just to be sure, though already in XML
         }
 
         if (entriesTextView != null) {
             entriesTextView.setText(entryCount + " total entries");
         }
     }
+
 
 
     private int calculateStreak() {

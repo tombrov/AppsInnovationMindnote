@@ -1,6 +1,7 @@
 package com.example.mindnote;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -35,7 +36,6 @@ import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
-import com.example.mindnote.JournalDataManager;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -86,7 +86,6 @@ public class JournalActivity extends AppCompatActivity {
 
         initViews();
 
-        // Try to get full entry from Intent first
         currentEntry = (JournalEntry) getIntent().getSerializableExtra("entry");
 
         if (currentEntry != null && currentEntry.getId() != null) {
@@ -105,7 +104,6 @@ public class JournalActivity extends AppCompatActivity {
                 });
             });
         } else {
-            // Fallback: try by ID if passed
             String entryId = getIntent().getStringExtra("entry_id");
             if (entryId != null) {
                 isEditMode = true;
@@ -174,21 +172,6 @@ public class JournalActivity extends AppCompatActivity {
         });
     }
 
-    private void initViews() {
-        backButton = findViewById(R.id.backButton);
-        moreButton = findViewById(R.id.moreButton);
-        dateText = findViewById(R.id.dateText);
-        moodHappy = findViewById(R.id.moodHappy);
-        moodNeutral = findViewById(R.id.moodNeutral);
-        moodSad = findViewById(R.id.moodSad);
-        gratitudeInput = findViewById(R.id.gratitudeInput);
-        addPhotoButton = findViewById(R.id.addPhotoButton);
-        saveButton = findViewById(R.id.saveButton);
-        cancelButton = findViewById(R.id.cancelButton);
-        entryImage = findViewById(R.id.entryImage);
-        bottomNavigationView = findViewById(R.id.bottomNavigation);
-    }
-
     private void populateEntryData() {
         if (currentEntry.getMood() >= 0 && currentEntry.getMood() <= 2) {
             selectMood(currentEntry.getMood());
@@ -213,9 +196,24 @@ public class JournalActivity extends AppCompatActivity {
         } else if (imagePath != null && !imagePath.isEmpty()) {
             Glide.with(this).load(imagePath).into(entryImage);
             entryImage.setVisibility(View.VISIBLE);
+            selectedImageUri = Uri.parse(imagePath); // Ensure it's not skipped on save
         } else {
             entryImage.setVisibility(View.GONE);
         }
+    }
+
+    private void initViews() {
+        backButton = findViewById(R.id.backButton);
+        dateText = findViewById(R.id.dateText);
+        moodHappy = findViewById(R.id.moodHappy);
+        moodNeutral = findViewById(R.id.moodNeutral);
+        moodSad = findViewById(R.id.moodSad);
+        gratitudeInput = findViewById(R.id.gratitudeInput);
+        addPhotoButton = findViewById(R.id.addPhotoButton);
+        saveButton = findViewById(R.id.saveButton);
+        cancelButton = findViewById(R.id.cancelButton);
+        entryImage = findViewById(R.id.entryImage);
+        bottomNavigationView = findViewById(R.id.bottomNavigation);
     }
 
     private void setCurrentDate() {
@@ -257,7 +255,6 @@ public class JournalActivity extends AppCompatActivity {
                 }
             }
             selectedMoodIndex = index;
-            String[] moodNames = {"Happy", "Neutral", "Sad"};
         }
         checkForChanges();
     }
@@ -276,25 +273,82 @@ public class JournalActivity extends AppCompatActivity {
         }
     }
 
+    private void pickImageFromGallery() {
+        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        intent.setType("image/*");
+
+        if (intent.resolveActivity(getPackageManager()) != null) {
+            startActivityForResult(Intent.createChooser(intent, "Select Picture"), REQUEST_CODE_IMAGE_PICK);
+        } else {
+            Snackbar.make(findViewById(android.R.id.content), "No app found to pick an image", Snackbar.LENGTH_SHORT).show();
+        }
+    }
+
     private void setupButtons() {
         moodHappy.setOnClickListener(v -> selectMood(0));
         moodNeutral.setOnClickListener(v -> selectMood(1));
         moodSad.setOnClickListener(v -> selectMood(2));
-
+        addPhotoButton.setOnClickListener(v -> requestImagePermissions());
         backButton.setOnClickListener(v -> onBackPressed());
-        addPhotoButton.setOnClickListener(v -> {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
-                    != PackageManager.PERMISSION_GRANTED) {
+        saveButton.setOnClickListener(v -> saveEntry());
+        cancelButton.setOnClickListener(v -> finish());
+    }
+
+    private void requestImagePermissions() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.READ_MEDIA_IMAGES},
+                        REQUEST_CODE_PERMISSION);
+            } else {
+                launchImagePicker();
+            }
+        } else {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this,
                         new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
                         REQUEST_CODE_PERMISSION);
             } else {
-                pickImageFromGallery();
+                launchImagePicker();
             }
-        });
+        }
+    }
 
-        saveButton.setOnClickListener(v -> saveEntry());
-        cancelButton.setOnClickListener(v -> finish());
+    private void launchImagePicker() {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("image/*");
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+
+        if (intent.resolveActivity(getPackageManager()) != null) {
+            startActivityForResult(Intent.createChooser(intent, "Select Picture"), REQUEST_CODE_IMAGE_PICK);
+        } else {
+            Snackbar.make(findViewById(android.R.id.content), "No app found to pick an image", Snackbar.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_CODE_PERMISSION && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            launchImagePicker();
+        } else {
+            Snackbar.make(findViewById(android.R.id.content), "Permission denied to read media", Snackbar.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_CODE_IMAGE_PICK && resultCode == RESULT_OK && data != null) {
+            selectedImageUri = data.getData();
+            if (selectedImageUri != null) {
+                entryImage.setImageURI(selectedImageUri);
+                entryImage.setVisibility(View.VISIBLE);
+                Snackbar.make(findViewById(android.R.id.content), "Image selected", Snackbar.LENGTH_SHORT).show();
+            } else {
+                Snackbar.make(findViewById(android.R.id.content), "Failed to retrieve image", Snackbar.LENGTH_SHORT).show();
+            }
+        }
     }
 
     private void saveEntry() {
@@ -351,7 +405,6 @@ public class JournalActivity extends AppCompatActivity {
         chip.setCheckable(true);
         chip.setChecked(selected);
 
-        // Style to match predefined chips
         chip.setTextSize(14);
         chip.setChipStartPadding(12f);
         chip.setChipEndPadding(12f);
@@ -359,14 +412,13 @@ public class JournalActivity extends AppCompatActivity {
         chip.setChipStrokeWidth(1f);
         chip.setChipStrokeColorResource(R.color.light_gray);
         chip.setTextColor(ContextCompat.getColor(this, R.color.black));
-        chip.setElevation(2f); // Optional shadow
+        chip.setElevation(2f);
 
-        // Add margin to the chip for spacing
         ViewGroup.MarginLayoutParams params = new ViewGroup.MarginLayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
         );
-        params.setMargins(8, 0, 8, 0); // horizontal spacing
+        params.setMargins(8, 0, 8, 0);
         chip.setLayoutParams(params);
 
         chip.setOnClickListener(v -> {
@@ -378,32 +430,16 @@ public class JournalActivity extends AppCompatActivity {
             checkForChanges();
         });
 
-        tagsChipGroup.addView(chip);
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == REQUEST_CODE_PERMISSION && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            pickImageFromGallery();
-        } else {
-            Snackbar.make(findViewById(android.R.id.content), "Permission denied to read media", Snackbar.LENGTH_SHORT).show();
-        }
-    }
-
-    private void pickImageFromGallery() {
-        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        startActivityForResult(intent, REQUEST_CODE_IMAGE_PICK);
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_CODE_IMAGE_PICK && resultCode == RESULT_OK && data != null) {
-            selectedImageUri = data.getData();
-            entryImage.setVisibility(View.VISIBLE);
-            entryImage.setImageURI(selectedImageUri);
+        chip.setCloseIconVisible(true);
+        chip.setOnCloseIconClickListener(v -> {
+            tagsChipGroup.removeView(chip);
+            selectedTags.remove(tag);
+            previouslyUsedTags.remove(tag);
+            dataManager.saveTagsToFirestore(previouslyUsedTags);
+            dataManager.deleteTagFromAllEntries(tag);
             checkForChanges();
-        }
+        });
+
+        tagsChipGroup.addView(chip);
     }
 }

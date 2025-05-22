@@ -2,7 +2,9 @@ package com.example.mindnote;
 
 import android.content.Context;
 import android.util.Log;
+import android.os.Bundle;
 
+import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
@@ -22,12 +24,12 @@ public class JournalDataManager {
 
     private static JournalDataManager instance;
     private final FirebaseFirestore db;
+    private FirebaseAnalytics analytics;
     private final List<JournalEntry> entries = new ArrayList<>();
 
     public static final String DEMO_IMAGE_FAMILY = "demo_family_sunset";
     public static final String DEMO_IMAGE_MEDITATION = "demo_meditation_sunrise";
     public static final String DEMO_IMAGE_LIGHTBULB = "demo_lightbulb";
-
 
     public static boolean isDemoImage(String imagePath) {
         return imagePath != null &&
@@ -45,6 +47,10 @@ public class JournalDataManager {
             instance = new JournalDataManager(context.getApplicationContext());
         }
         return instance;
+    }
+
+    public void setAnalytics(FirebaseAnalytics analytics) {
+        this.analytics = analytics;
     }
 
     public interface FirestoreCallback {
@@ -80,6 +86,35 @@ public class JournalDataManager {
                 });
     }
 
+    public void deleteTagFromAllEntries(String tagToDelete) {
+        db.collection(COLLECTION_NAME)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                        if (doc.getId().equals("tags")) continue;
+
+                        List<String> entryTags = (List<String>) doc.get("tags");
+                        if (entryTags != null && entryTags.contains(tagToDelete)) {
+                            entryTags.remove(tagToDelete);
+                            db.collection(COLLECTION_NAME)
+                                    .document(doc.getId())
+                                    .update("tags", entryTags)
+                                    .addOnSuccessListener(aVoid -> {
+                                        Log.d(TAG, "Removed tag '" + tagToDelete + "' from entry: " + doc.getId());
+                                        if (analytics != null) {
+                                            Bundle bundle = new Bundle();
+                                            bundle.putString("tag_action", "removed");
+                                            analytics.logEvent("tag_event", bundle);
+                                        }
+                                    })
+                                    .addOnFailureListener(e ->
+                                            Log.e(TAG, "Failed to remove tag from entry: " + doc.getId(), e));
+                        }
+                    }
+                })
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to fetch entries for tag cleanup", e));
+    }
+
     public void addEntry(JournalEntry entry) {
         Map<String, Object> entryMap = new HashMap<>();
         entryMap.put("note", entry.getNote());
@@ -93,6 +128,11 @@ public class JournalDataManager {
                 .addOnSuccessListener(docRef -> {
                     entry.setId(docRef.getId());
                     Log.d(TAG, "Entry added with ID: " + docRef.getId());
+                    if (analytics != null) {
+                        Bundle bundle = new Bundle();
+                        bundle.putString("entry_action", "created");
+                        analytics.logEvent("journal_entry", bundle);
+                    }
                 })
                 .addOnFailureListener(e -> Log.e(TAG, "Add entry failed", e));
     }
@@ -106,7 +146,14 @@ public class JournalDataManager {
         db.collection(COLLECTION_NAME)
                 .document(entry.getId())
                 .set(entry)
-                .addOnSuccessListener(aVoid -> Log.d(TAG, "Updated entry ID: " + entry.getId()))
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Updated entry ID: " + entry.getId());
+                    if (analytics != null) {
+                        Bundle bundle = new Bundle();
+                        bundle.putString("entry_action", "edited");
+                        analytics.logEvent("journal_entry", bundle);
+                    }
+                })
                 .addOnFailureListener(e -> Log.e(TAG, "Update entry failed", e));
     }
 
@@ -116,6 +163,11 @@ public class JournalDataManager {
                 .delete()
                 .addOnSuccessListener(aVoid -> {
                     Log.d(TAG, "Deleted entry ID: " + entryId);
+                    if (analytics != null) {
+                        Bundle bundle = new Bundle();
+                        bundle.putString("entry_action", "deleted");
+                        analytics.logEvent("journal_entry", bundle);
+                    }
                     callback.accept(true);
                 })
                 .addOnFailureListener(e -> {
@@ -148,7 +200,14 @@ public class JournalDataManager {
         db.collection(COLLECTION_NAME)
                 .document("tags")
                 .set(data)
-                .addOnSuccessListener(aVoid -> Log.d("TAG_SAVE", "Tags updated"))
+                .addOnSuccessListener(aVoid -> {
+                    Log.d("TAG_SAVE", "Tags updated");
+                    if (analytics != null) {
+                        Bundle bundle = new Bundle();
+                        bundle.putString("tag_action", "created");
+                        analytics.logEvent("tag_event", bundle);
+                    }
+                })
                 .addOnFailureListener(e -> Log.e("TAG_SAVE", "Failed to save tags", e));
     }
 
