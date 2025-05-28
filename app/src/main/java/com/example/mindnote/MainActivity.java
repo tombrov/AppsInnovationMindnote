@@ -150,36 +150,22 @@ public class MainActivity extends AppCompatActivity {
                 TextView contentText = entryView.findViewById(R.id.contentText);
                 ImageView entryImage = entryView.findViewById(R.id.entryImage);
 
-                Date entryDate = entry.getDate(); // Make sure this returns a java.util.Date
-                Calendar entryCal = Calendar.getInstance();
-                entryCal.setTime(entryDate);
-
-                Calendar today = Calendar.getInstance();
-
-                Calendar yesterday = Calendar.getInstance();
-                yesterday.add(Calendar.DAY_OF_YEAR, -1);
-
-                String dateDisplay;
-                if (isSameDay(entryCal, today)) {
-                    dateDisplay = "Today, " + entry.getFormattedTime();
-                } else if (isSameDay(entryCal, yesterday)) {
-                    dateDisplay = "Yesterday, " + entry.getFormattedTime();
-                } else {
-                    dateDisplay = entry.getShortDate();
-                }
-
-
+                String dateDisplay = checkDate(entry);
                 dateText.setText(dateDisplay);
                 contentText.setText(entry.getNote());
 
                 String imagePath = entry.getImagePath();
                 if (JournalDataManager.isDemoImage(imagePath)) {
-                    if (imagePath.equals(JournalDataManager.DEMO_IMAGE_FAMILY)) {
-                        entryImage.setImageResource(R.drawable.family_sunset);
-                    } else if (imagePath.equals(JournalDataManager.DEMO_IMAGE_MEDITATION)) {
-                        entryImage.setImageResource(R.drawable.meditation_sunrise);
-                    } else if (imagePath.equals(JournalDataManager.DEMO_IMAGE_LIGHTBULB)) {
-                        entryImage.setImageResource(R.drawable.lightbulb);
+                    switch (imagePath) {
+                        case JournalDataManager.DEMO_IMAGE_FAMILY:
+                            entryImage.setImageResource(R.drawable.family_sunset);
+                            break;
+                        case JournalDataManager.DEMO_IMAGE_MEDITATION:
+                            entryImage.setImageResource(R.drawable.meditation_sunrise);
+                            break;
+                        case JournalDataManager.DEMO_IMAGE_LIGHTBULB:
+                            entryImage.setImageResource(R.drawable.lightbulb);
+                            break;
                     }
                     entryImage.setVisibility(View.VISIBLE);
                 } else if (imagePath != null && !imagePath.isEmpty()) {
@@ -200,6 +186,26 @@ public class MainActivity extends AppCompatActivity {
                 recentEntriesContainer.addView(entryView);
             }
         });
+    }
+
+    private String checkDate(JournalEntry entry) {
+        Date entryDate = entry.getDate(); // Make sure this returns a java.util.Date
+        Calendar entryCal = Calendar.getInstance();
+        entryCal.setTime(entryDate);
+        Calendar today = Calendar.getInstance();
+        Calendar yesterday = Calendar.getInstance();
+        yesterday.add(Calendar.DAY_OF_YEAR, -1);
+        String dateDisplay;
+
+        if (isSameDay(entryCal, today)) {
+            dateDisplay = "Today, " + entry.getFormattedTime();
+        } else if (isSameDay(entryCal, yesterday)) {
+            dateDisplay = "Yesterday, " + entry.getFormattedTime();
+        } else {
+            dateDisplay = entry.getShortDate();
+        }
+
+        return dateDisplay;
     }
 
     private boolean isSameDay(Calendar cal1, Calendar cal2) {
