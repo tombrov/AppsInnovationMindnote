@@ -49,8 +49,9 @@ public class JournalDataManager {
         return instance;
     }
 
-    public void setAnalytics(FirebaseAnalytics analytics) {
+    public FirebaseAnalytics setAnalytics(FirebaseAnalytics analytics) {
         this.analytics = analytics;
+        return analytics;
     }
 
     public interface FirestoreCallback {
@@ -68,23 +69,36 @@ public class JournalDataManager {
                         entry.setId(doc.getId());
                         entries.add(entry);
                     }
+
                     entries.sort((e1, e2) -> {
                         Date d1 = e1.getDate();
                         Date d2 = e2.getDate();
-
                         if (d1 == null && d2 == null) return 0;
                         if (d1 == null) return 1;
                         if (d2 == null) return -1;
                         return d2.compareTo(d1);
                     });
 
+                    if (analytics != null) {
+                        Bundle bundle = new Bundle();
+                        bundle.putInt("entry_count", entries.size());
+                        analytics.logEvent("entries_loaded", bundle);
+                    }
+
                     callback.onComplete(entries);
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error loading Firestore entries", e);
                     callback.onComplete(new ArrayList<>());
+
+                    if (analytics != null) {
+                        Bundle bundle = new Bundle();
+                        bundle.putString("error", e.getMessage());
+                        analytics.logEvent("entries_load_failed", bundle);
+                    }
                 });
     }
+
 
     public void deleteTagFromAllEntries(String tagToDelete) {
         db.collection(COLLECTION_NAME)

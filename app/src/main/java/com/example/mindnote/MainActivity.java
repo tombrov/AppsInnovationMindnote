@@ -14,6 +14,7 @@ import android.widget.TextView;
 import com.bumptech.glide.Glide;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.button.MaterialButton;
+import com.google.firebase.analytics.FirebaseAnalytics;
 
 import java.util.Calendar;
 import java.util.Date;
@@ -32,6 +33,14 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         dataManager = JournalDataManager.getInstance(this);
+
+        try {
+            FirebaseAnalytics analytics = FirebaseAnalytics.getInstance(this);
+            dataManager.setAnalytics(analytics);
+        } catch (SecurityException e) {
+            android.util.Log.e("FirebaseInit", "Google Play Services call failed", e);
+        }
+
         initViews();
         setupNavigation();
         setupButtonListeners();

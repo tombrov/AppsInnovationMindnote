@@ -7,13 +7,15 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+import com.google.firebase.firestore.Exclude;
+
 public class JournalEntry implements Serializable {
-    private String id;             // Firestore document ID
-    private Date date;            // Entry date
-    private String note;          // User's note
-    private int mood;             // 0=happy, 1=neutral, 2=sad
-    private List<String> tags;    // List of tags
-    private String imagePath;     // Optional image path
+    private String id;
+    private Date date;
+    private String note;
+    private int mood;
+    private List<String> tags;
+    private String imagePath;
 
     public JournalEntry() {
         this.date = new Date();
@@ -82,26 +84,31 @@ public class JournalEntry implements Serializable {
         this.imagePath = imagePath;
     }
 
+    @Exclude
     public String getFormattedDate() {
         if (date == null) return "Just Now";
         return new SimpleDateFormat("EEEE, MMMM d, yyyy", Locale.getDefault()).format(date);
     }
 
+    @Exclude
     public String getFormattedTime() {
         if (date == null) return "Unknown time";
         return new SimpleDateFormat("h:mm a", Locale.getDefault()).format(date);
     }
 
+    @Exclude
     public String getShortDate() {
         if (date == null) return "Unknown date";
         return new SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(date);
     }
 
+    @Exclude
     public String getTagsAsString() {
         if (tags == null || tags.isEmpty()) return "";
         return String.join(", ", tags);
     }
 
+    @Exclude
     public String getMoodEmoji() {
         switch (mood) {
             case 0: return "😊"; // happy

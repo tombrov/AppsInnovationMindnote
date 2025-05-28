@@ -74,8 +74,8 @@ public class JournalActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_journal);
-
         initFirebase();
+        FirebaseAnalytics analytics = JournalDataManager.getInstance(this).setAnalytics(FirebaseAnalytics.getInstance(this));
         initViews();
         initEntryState();
         loadTags();

@@ -31,18 +31,9 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
         setContentView(R.layout.activity_notes);
 
         // Initialize views
-        notesRecyclerView = findViewById(R.id.notesRecyclerView);
-        bottomNavigationView = findViewById(R.id.bottomNavigation);
-        emptyStateContainer = findViewById(R.id.emptyStateContainer);
-        addNoteButton = findViewById(R.id.addNoteButton);
-
-        // Initialize data manager
+        initViews();
         dataManager = JournalDataManager.getInstance(this);
-
-        // Set up RecyclerView
-        notesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        notesAdapter = new NotesAdapter(new ArrayList<>(), this);
-        notesRecyclerView.setAdapter(notesAdapter);
+        recyclerView();
 
         // Set up add note button in empty state
         addNoteButton.setOnClickListener(v -> {
@@ -50,17 +41,26 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
             startActivity(intent);
         });
 
-        // Set up bottom navigation
         setupBottomNavigation();
-
-        // Update UI
         updateUI();
+    }
+
+    private void initViews(){
+        notesRecyclerView = findViewById(R.id.notesRecyclerView);
+        bottomNavigationView = findViewById(R.id.bottomNavigation);
+        emptyStateContainer = findViewById(R.id.emptyStateContainer);
+        addNoteButton = findViewById(R.id.addNoteButton);
+    }
+
+    private void recyclerView(){
+        notesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        notesAdapter = new NotesAdapter(new ArrayList<>(), this);
+        notesRecyclerView.setAdapter(notesAdapter);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        // Refresh the data when returning to this activity
         updateUI();
     }
 
@@ -89,7 +89,6 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
                     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
                         int itemId = item.getItemId();
                         if (itemId == R.id.navigation_journal) {
-                            // Navigate to Journal activity
                             Intent intent = new Intent(NotesActivity.this, JournalActivity.class);
                             startActivity(intent);
                             return true;
@@ -97,29 +96,23 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
                             // Already on notes
                             return true;
                         } else if (itemId == R.id.navigation_home) {
-                            // Navigate to home activity
                             Intent intent = new Intent(NotesActivity.this, MainActivity.class);
                             startActivity(intent);
                             finish();
                             return true;
-                        } else if (itemId == R.id.navigation_calendar) {
+                        } else
+                            if (itemId == R.id.navigation_calendar) {
                             Intent intent = new Intent(NotesActivity.this, CalendarActivity.class);
                             startActivity(intent);
                             finish();
                             return true;
-                        } else if (itemId == R.id.navigation_profile) {
-                            // Handle profile click - for future implementation
-                            return true;
-                        }
-                        return false;
+                        } else return itemId == R.id.navigation_profile;
                     }
                 });
     }
 
     @Override
     public void onNoteClick(JournalEntry entry) {
-        // For future implementation: View note details
-        // For now, we'll just show the Journal activity to edit it
         Intent intent = new Intent(NotesActivity.this, JournalActivity.class);
         intent.putExtra("entry_id", entry.getId());
         startActivity(intent);

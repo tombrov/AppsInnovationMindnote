@@ -31,21 +31,38 @@ public class CalendarActivity extends AppCompatActivity implements NotesAdapter.
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_calendar);
 
+        initViews();
+        initFirebase();
+        initRecyclerView();
+        setupCalendarListener();
+        setupBottomNavigation();
+    }
+
+    private void initViews() {
         calendarView = findViewById(R.id.calendarView);
         recyclerView = findViewById(R.id.notesRecyclerView);
-        db = FirebaseFirestore.getInstance();
+    }
 
+    private void initFirebase() {
+        db = FirebaseFirestore.getInstance();
+    }
+
+    private void initRecyclerView() {
         adapter = new NotesAdapter(entryList, this);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
+    }
 
+    private void setupCalendarListener() {
         calendarView.setOnDateChangeListener((view, year, month, dayOfMonth) -> {
             Calendar selectedDate = Calendar.getInstance();
             selectedDate.set(year, month, dayOfMonth, 0, 0, 0);
             selectedDate.set(Calendar.MILLISECOND, 0);
             loadEntries(selectedDate);
         });
+    }
 
+    private void setupBottomNavigation() {
         BottomNavigationView bottomNav = findViewById(R.id.bottomNavigationView);
         bottomNav.setSelectedItemId(R.id.navigation_calendar);
 
@@ -53,22 +70,15 @@ public class CalendarActivity extends AppCompatActivity implements NotesAdapter.
             int id = item.getItemId();
             if (id == R.id.navigation_home) {
                 startActivity(new Intent(this, MainActivity.class));
-                finish();
-                return true;
             } else if (id == R.id.navigation_notes) {
                 startActivity(new Intent(this, NotesActivity.class));
-                finish();
-                return true;
             } else if (id == R.id.navigation_journal) {
                 startActivity(new Intent(this, JournalActivity.class));
-                finish();
-                return true;
-            } else if (id == R.id.navigation_calendar) {
-                return true;
-            } else if (id == R.id.navigation_profile) {
+            } else if (id == R.id.navigation_calendar || id == R.id.navigation_profile) {
                 return true;
             }
-            return false;
+            finish();
+            return true;
         });
     }
 
