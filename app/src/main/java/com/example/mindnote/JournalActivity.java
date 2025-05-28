@@ -75,73 +75,96 @@ public class JournalActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_journal);
 
-        analytics = FirebaseAnalytics.getInstance(this);
-        db = FirebaseFirestore.getInstance();
-        dataManager = JournalDataManager.getInstance(this);
+        initFirebase();
+        initViews();
+        initEntryState();
+        loadTags();
+        setupTagInput();
+        setCurrentDate();
+        setupButtons();
+        setupBottomNavigation();
+        setupGratitudeWatcher();
+        updateVisibilityForEditMode();
+    }
 
+    private void initViews() {
+        backButton = findViewById(R.id.backButton);
+        dateText = findViewById(R.id.dateText);
+        moodHappy = findViewById(R.id.moodHappy);
+        moodNeutral = findViewById(R.id.moodNeutral);
+        moodSad = findViewById(R.id.moodSad);
+        gratitudeInput = findViewById(R.id.gratitudeInput);
+        addPhotoButton = findViewById(R.id.addPhotoButton);
+        saveButton = findViewById(R.id.saveButton);
+        cancelButton = findViewById(R.id.cancelButton);
+        entryImage = findViewById(R.id.entryImage);
+        bottomNavigationView = findViewById(R.id.bottomNavigation);
         pageTitle = findViewById(R.id.pageTitle);
         deleteButton = findViewById(R.id.deleteEntryButton);
         tagInputEditText = findViewById(R.id.tagInputEditText);
         tagsChipGroup = findViewById(R.id.tagsChipGroup);
+    }
 
-        initViews();
+    private void initFirebase() {
+        analytics = FirebaseAnalytics.getInstance(this);
+        db = FirebaseFirestore.getInstance();
+        dataManager = JournalDataManager.getInstance(this);
+    }
 
+    private void initEntryState() {
         currentEntry = (JournalEntry) getIntent().getSerializableExtra("entry");
-
         if (currentEntry != null && currentEntry.getId() != null) {
-            isEditMode = true;
-            populateEntryData();
-            pageTitle.setText("Edit Entry");
-            deleteButton.setVisibility(View.VISIBLE);
-            deleteButton.setOnClickListener(v -> {
-                dataManager.deleteEntry(currentEntry.getId(), success -> {
-                    if (success) {
-                        Snackbar.make(findViewById(android.R.id.content), "Entry deleted", Snackbar.LENGTH_SHORT).show();
-                        finish();
-                    } else {
-                        Snackbar.make(findViewById(android.R.id.content), "Failed to delete entry", Snackbar.LENGTH_SHORT).show();
-                    }
-                });
-            });
+            setEditMode(currentEntry);
         } else {
             String entryId = getIntent().getStringExtra("entry_id");
             if (entryId != null) {
-                isEditMode = true;
                 currentEntry = dataManager.getEntryById(entryId);
                 if (currentEntry != null) {
-                    populateEntryData();
-                    pageTitle.setText("Edit Entry");
-                    deleteButton.setVisibility(View.VISIBLE);
-                    deleteButton.setOnClickListener(v -> {
-                        dataManager.deleteEntry(currentEntry.getId(), success -> {
-                            if (success) {
-                                Snackbar.make(findViewById(android.R.id.content), "Entry deleted", Snackbar.LENGTH_SHORT).show();
-                                finish();
-                            } else {
-                                Snackbar.make(findViewById(android.R.id.content), "Failed to delete entry", Snackbar.LENGTH_SHORT).show();
-                            }
-                        });
-                    });
+                    setEditMode(currentEntry);
                 } else {
-                    currentEntry = new JournalEntry();
-                    pageTitle.setText("New Entry");
+                    setNewEntryMode();
                 }
             } else {
-                currentEntry = new JournalEntry();
-                pageTitle.setText("New Entry");
-                deleteButton.setVisibility(View.GONE);
+                setNewEntryMode();
             }
         }
+    }
 
+    private void setEditMode(JournalEntry entry) {
+        isEditMode = true;
+        populateEntryData();
+        pageTitle.setText("Edit Entry");
+        deleteButton.setVisibility(View.VISIBLE);
+        deleteButton.setOnClickListener(v -> {
+            dataManager.deleteEntry(entry.getId(), success -> {
+                Snackbar.make(findViewById(android.R.id.content),
+                        success ? "Entry deleted" : "Failed to delete entry", Snackbar.LENGTH_SHORT).show();
+                if (success) finish();
+            });
+        });
+    }
+
+    private void setNewEntryMode() {
+        isEditMode = false;
+        currentEntry = new JournalEntry();
+        pageTitle.setText("New Entry");
+        deleteButton.setVisibility(View.GONE);
+    }
+
+    private void loadTags() {
         dataManager.loadTagsFromFirestore(tags -> {
             previouslyUsedTags.addAll(tags);
             for (String tag : previouslyUsedTags) {
                 addTagChip(tag, selectedTags.contains(tag));
             }
         });
+    }
 
+    private void setupTagInput() {
         tagInputEditText.setOnEditorActionListener((v, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_DONE || (event != null && event.getAction() == KeyEvent.ACTION_DOWN && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
+            if (actionId == EditorInfo.IME_ACTION_DONE ||
+                    (event != null && event.getAction() == KeyEvent.ACTION_DOWN && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
+
                 String newTag = tagInputEditText.getText().toString().trim();
                 if (!newTag.isEmpty() && !selectedTags.contains(newTag)) {
                     selectedTags.add(newTag);
@@ -155,21 +178,21 @@ public class JournalActivity extends AppCompatActivity {
             }
             return false;
         });
+    }
 
-        setCurrentDate();
-        setupButtons();
-        setupBottomNavigation();
-
-        if (isEditMode) {
-            saveButton.setVisibility(View.GONE);
-            cancelButton.setVisibility(View.GONE);
-        }
-
+    private void setupGratitudeWatcher() {
         gratitudeInput.addTextChangedListener(new TextWatcher() {
             public void afterTextChanged(Editable s) { checkForChanges(); }
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             public void onTextChanged(CharSequence s, int start, int before, int count) {}
         });
+    }
+
+    private void updateVisibilityForEditMode() {
+        if (isEditMode) {
+            saveButton.setVisibility(View.GONE);
+            cancelButton.setVisibility(View.GONE);
+        }
     }
 
     private void populateEntryData() {
@@ -200,20 +223,6 @@ public class JournalActivity extends AppCompatActivity {
         } else {
             entryImage.setVisibility(View.GONE);
         }
-    }
-
-    private void initViews() {
-        backButton = findViewById(R.id.backButton);
-        dateText = findViewById(R.id.dateText);
-        moodHappy = findViewById(R.id.moodHappy);
-        moodNeutral = findViewById(R.id.moodNeutral);
-        moodSad = findViewById(R.id.moodSad);
-        gratitudeInput = findViewById(R.id.gratitudeInput);
-        addPhotoButton = findViewById(R.id.addPhotoButton);
-        saveButton = findViewById(R.id.saveButton);
-        cancelButton = findViewById(R.id.cancelButton);
-        entryImage = findViewById(R.id.entryImage);
-        bottomNavigationView = findViewById(R.id.bottomNavigation);
     }
 
     private void setCurrentDate() {

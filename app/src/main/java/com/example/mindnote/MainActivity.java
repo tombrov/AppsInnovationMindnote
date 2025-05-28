@@ -31,14 +31,20 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         dataManager = JournalDataManager.getInstance(this);
+        initViews();
+        setupNavigation();
+        setupButtonListeners();
+        updateStats();
+        updateRecentEntries();
+    }
 
+    private void initViews() {
         bottomNavigationView = findViewById(R.id.bottomNavigation);
         addEntryButton = findViewById(R.id.addEntryButton);
         viewAllButton = findViewById(R.id.viewAllButton);
-
         recentEntriesContainer = findViewById(R.id.recentEntriesContainer);
+
         if (recentEntriesContainer == null) {
             View scrollView = findViewById(R.id.scrollView);
             if (scrollView instanceof android.widget.ScrollView) {
@@ -46,31 +52,26 @@ public class MainActivity extends AppCompatActivity {
                 recentEntriesContainer = parent;
             }
         }
+    }
 
-        updateStats();
-        updateRecentEntries();
+    private void setupNavigation() {
         bottomNavigationView.setSelectedItemId(R.id.navigation_home);
-
         bottomNavigationView.setOnNavigationItemSelectedListener(item -> {
             int itemId = item.getItemId();
             if (itemId == R.id.navigation_journal) {
                 startActivity(new Intent(MainActivity.this, JournalActivity.class));
-                return true;
             } else if (itemId == R.id.navigation_notes) {
                 startActivity(new Intent(MainActivity.this, NotesActivity.class));
-                return true;
-            } else if (itemId == R.id.navigation_home) {
-                return true;
             } else if (itemId == R.id.navigation_calendar) {
                 startActivity(new Intent(MainActivity.this, CalendarActivity.class));
-                return true;
             } else if (itemId == R.id.navigation_profile) {
                 Snackbar.make(findViewById(android.R.id.content), "Profile feature coming soon", Snackbar.LENGTH_SHORT).show();
-                return true;
             }
-            return false;
+            return true;
         });
+    }
 
+    private void setupButtonListeners() {
         addEntryButton.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, JournalActivity.class)));
         viewAllButton.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, NotesActivity.class)));
     }
@@ -206,11 +207,12 @@ public class MainActivity extends AppCompatActivity {
     private String checkDate(JournalEntry entry) {
         Date entryDate = entry.getDate();
         Calendar entryCal = Calendar.getInstance();
-        entryCal.setTime(entryDate);
         Calendar today = Calendar.getInstance();
         Calendar yesterday = Calendar.getInstance();
-        yesterday.add(Calendar.DAY_OF_YEAR, -1);
         String dateDisplay;
+
+        entryCal.setTime(entryDate);
+        yesterday.add(Calendar.DAY_OF_YEAR, -1);
 
         if (isSameDay(entryCal, today)) {
             dateDisplay = "Today, " + entry.getFormattedTime();
