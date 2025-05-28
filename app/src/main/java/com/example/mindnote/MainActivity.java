@@ -50,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         updateStats();
+        updateRecentEntries();
         bottomNavigationView.setSelectedItemId(R.id.navigation_home);
 
         bottomNavigationView.setOnNavigationItemSelectedListener(item -> {
@@ -189,7 +190,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private String checkDate(JournalEntry entry) {
-        Date entryDate = entry.getDate(); // Make sure this returns a java.util.Date
+        Date entryDate = entry.getDate();
         Calendar entryCal = Calendar.getInstance();
         entryCal.setTime(entryDate);
         Calendar today = Calendar.getInstance();
