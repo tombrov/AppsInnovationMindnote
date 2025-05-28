@@ -15,6 +15,8 @@ import com.bumptech.glide.Glide;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.button.MaterialButton;
 
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -148,11 +150,24 @@ public class MainActivity extends AppCompatActivity {
                 TextView contentText = entryView.findViewById(R.id.contentText);
                 ImageView entryImage = entryView.findViewById(R.id.entryImage);
 
-                String dateDisplay = (i == 0)
-                        ? "Today, " + entry.getFormattedTime()
-                        : (i == 1)
-                        ? "Yesterday, " + entry.getFormattedTime()
-                        : entry.getShortDate();
+                Date entryDate = entry.getDate(); // Make sure this returns a java.util.Date
+                Calendar entryCal = Calendar.getInstance();
+                entryCal.setTime(entryDate);
+
+                Calendar today = Calendar.getInstance();
+
+                Calendar yesterday = Calendar.getInstance();
+                yesterday.add(Calendar.DAY_OF_YEAR, -1);
+
+                String dateDisplay;
+                if (isSameDay(entryCal, today)) {
+                    dateDisplay = "Today, " + entry.getFormattedTime();
+                } else if (isSameDay(entryCal, yesterday)) {
+                    dateDisplay = "Yesterday, " + entry.getFormattedTime();
+                } else {
+                    dateDisplay = entry.getShortDate();
+                }
+
 
                 dateText.setText(dateDisplay);
                 contentText.setText(entry.getNote());
@@ -185,5 +200,10 @@ public class MainActivity extends AppCompatActivity {
                 recentEntriesContainer.addView(entryView);
             }
         });
+    }
+
+    private boolean isSameDay(Calendar cal1, Calendar cal2) {
+        return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR)
+                && cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR);
     }
 }
