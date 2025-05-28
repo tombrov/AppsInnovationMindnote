@@ -24,8 +24,6 @@ public class MainActivity extends AppCompatActivity {
     private BottomNavigationView bottomNavigationView;
     private MaterialButton addEntryButton;
     private TextView viewAllButton;
-    private TextView streakCountText;
-    private TextView entriesCountText;
     private LinearLayout recentEntriesContainer;
     private JournalDataManager dataManager;
 
