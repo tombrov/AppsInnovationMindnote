@@ -106,8 +106,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
-
     private int calculateStreak() {
         List<JournalEntry> entries = dataManager.getAllEntries();
 
@@ -133,61 +131,79 @@ public class MainActivity extends AppCompatActivity {
         recentEntriesContainer.removeAllViews();
 
         dataManager.loadEntriesFromFirestore(entries -> {
-            int entryLimit = Math.min(entries.size(), 3);
-
             if (entries.isEmpty()) {
-                if (recentEntriesContainer.getChildCount() == 0) {
-                    View emptyView = LayoutInflater.from(this).inflate(R.layout.empty_recent_entries, recentEntriesContainer, false);
-                    recentEntriesContainer.addView(emptyView);
-                }
-                return;
-            }
-
-            for (int i = 0; i < entryLimit; i++) {
-                JournalEntry entry = entries.get(i);
-                View entryView = LayoutInflater.from(this).inflate(R.layout.item_recent_entry, recentEntriesContainer, false);
-
-                TextView dateText = entryView.findViewById(R.id.dateText);
-                TextView contentText = entryView.findViewById(R.id.contentText);
-                ImageView entryImage = entryView.findViewById(R.id.entryImage);
-
-                String dateDisplay = checkDate(entry);
-                dateText.setText(dateDisplay);
-                contentText.setText(entry.getNote());
-
-                String imagePath = entry.getImagePath();
-                if (JournalDataManager.isDemoImage(imagePath)) {
-                    switch (imagePath) {
-                        case JournalDataManager.DEMO_IMAGE_FAMILY:
-                            entryImage.setImageResource(R.drawable.family_sunset);
-                            break;
-                        case JournalDataManager.DEMO_IMAGE_MEDITATION:
-                            entryImage.setImageResource(R.drawable.meditation_sunrise);
-                            break;
-                        case JournalDataManager.DEMO_IMAGE_LIGHTBULB:
-                            entryImage.setImageResource(R.drawable.lightbulb);
-                            break;
-                    }
-                    entryImage.setVisibility(View.VISIBLE);
-                } else if (imagePath != null && !imagePath.isEmpty()) {
-                    Glide.with(this)
-                            .load(imagePath)
-                            .into(entryImage);
-                    entryImage.setVisibility(View.VISIBLE);
-                } else {
-                    entryImage.setVisibility(View.GONE);
-                }
-
-                entryView.setOnClickListener(v -> {
-                    Intent intent = new Intent(MainActivity.this, JournalActivity.class);
-                    intent.putExtra("entry_id", entry.getId());
-                    startActivity(intent);
-                });
-
-                recentEntriesContainer.addView(entryView);
+                showEmptyStateIfNeeded();
+            } else {
+                displayRecentEntries(entries);
             }
         });
     }
+
+    private void showEmptyStateIfNeeded() {
+        if (recentEntriesContainer.getChildCount() == 0) {
+            View emptyView = LayoutInflater.from(this)
+                    .inflate(R.layout.empty_recent_entries, recentEntriesContainer, false);
+            recentEntriesContainer.addView(emptyView);
+        }
+    }
+
+    private void displayRecentEntries(List<JournalEntry> entries) {
+        int entryLimit = Math.min(entries.size(), 3);
+
+        for (int i = 0; i < entryLimit; i++) {
+            JournalEntry entry = entries.get(i);
+            View entryView = createEntryView(entry);
+            recentEntriesContainer.addView(entryView);
+        }
+    }
+
+    private View createEntryView(JournalEntry entry) {
+        View entryView = LayoutInflater.from(this)
+                .inflate(R.layout.item_recent_entry, recentEntriesContainer, false);
+
+        TextView dateText = entryView.findViewById(R.id.dateText);
+        TextView contentText = entryView.findViewById(R.id.contentText);
+        ImageView entryImage = entryView.findViewById(R.id.entryImage);
+
+        dateText.setText(checkDate(entry));
+        contentText.setText(entry.getNote());
+        loadEntryImage(entry, entryImage);
+
+        entryView.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, JournalActivity.class);
+            intent.putExtra("entry_id", entry.getId());
+            startActivity(intent);
+        });
+
+        return entryView;
+    }
+
+    private void loadEntryImage(JournalEntry entry, ImageView entryImage) {
+        String imagePath = entry.getImagePath();
+
+        if (JournalDataManager.isDemoImage(imagePath)) {
+            switch (imagePath) {
+                case JournalDataManager.DEMO_IMAGE_FAMILY:
+                    entryImage.setImageResource(R.drawable.family_sunset);
+                    break;
+                case JournalDataManager.DEMO_IMAGE_MEDITATION:
+                    entryImage.setImageResource(R.drawable.meditation_sunrise);
+                    break;
+                case JournalDataManager.DEMO_IMAGE_LIGHTBULB:
+                    entryImage.setImageResource(R.drawable.lightbulb);
+                    break;
+            }
+            entryImage.setVisibility(View.VISIBLE);
+        } else if (imagePath != null && !imagePath.isEmpty()) {
+            Glide.with(this)
+                    .load(imagePath)
+                    .into(entryImage);
+            entryImage.setVisibility(View.VISIBLE);
+        } else {
+            entryImage.setVisibility(View.GONE);
+        }
+    }
+
 
     private String checkDate(JournalEntry entry) {
         Date entryDate = entry.getDate();
