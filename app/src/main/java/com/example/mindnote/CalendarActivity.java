@@ -1,133 +1,112 @@
-
 package com.example.mindnote;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.widget.CalendarView;
+import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import android.widget.CalendarView;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
-public class CalendarActivity extends AppCompatActivity implements NotesAdapter.OnNoteClickListener {
+public class CalendarActivity extends AppCompatActivity {
 
     private CalendarView calendarView;
-    private RecyclerView recyclerView;
     private NotesAdapter adapter;
-    private FirebaseFirestore db;
-    private List<JournalEntry> entryList = new ArrayList<>();
+    private List<JournalEntry> allEntries = new ArrayList<>();
+    private List<JournalEntry> filteredEntries = new ArrayList<>();
+    private JournalDataManager dataManager;
+    private BottomNavigationView bottomNavigationView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_calendar);
 
-        initViews();
-        initFirebase();
-        initRecyclerView();
-        setupCalendarListener();
+        calendarView = findViewById(R.id.calendarView);
+        RecyclerView notesRecyclerView = findViewById(R.id.notesRecyclerView);
+        bottomNavigationView = findViewById(R.id.bottomNavigationView);
+        bottomNavigationView.setSelectedItemId(R.id.navigation_calendar);
+
+        dataManager = JournalDataManager.getInstance(this);
+        adapter = new NotesAdapter(filteredEntries, this::openEntryDetail);
+
+        notesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        notesRecyclerView.setAdapter(adapter);
+
+        loadEntries();
+
+        calendarView.setOnDateChangeListener((view, year, month, dayOfMonth) -> {
+            Calendar selected = Calendar.getInstance();
+            selected.set(year, month, dayOfMonth);
+            filterEntriesByDate(selected.getTime());
+        });
+
         setupBottomNavigation();
     }
 
-    private void initViews() {
-        calendarView = findViewById(R.id.calendarView);
-        recyclerView = findViewById(R.id.notesRecyclerView);
-    }
-
-    private void initFirebase() {
-        db = FirebaseFirestore.getInstance();
-    }
-
-    private void initRecyclerView() {
-        adapter = new NotesAdapter(entryList, this);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        recyclerView.setAdapter(adapter);
-    }
-
-    private void setupCalendarListener() {
-        calendarView.setOnDateChangeListener((view, year, month, dayOfMonth) -> {
-            Calendar selectedDate = Calendar.getInstance();
-            selectedDate.set(year, month, dayOfMonth, 0, 0, 0);
-            selectedDate.set(Calendar.MILLISECOND, 0);
-            loadEntries(selectedDate);
+    private void loadEntries() {
+        dataManager.loadEntriesFromFirestore(entries -> {
+            allEntries.clear();
+            allEntries.addAll(entries);
+            filterEntriesByDate(new Date(calendarView.getDate()));
         });
+    }
+
+    private void filterEntriesByDate(Date selectedDate) {
+        filteredEntries.clear();
+        SimpleDateFormat fmt = new SimpleDateFormat("yyyyMMdd", Locale.getDefault());
+        String target = fmt.format(selectedDate);
+
+        for (JournalEntry entry : allEntries) {
+            if (entry.getDate() != null && fmt.format(entry.getDate()).equals(target)) {
+                filteredEntries.add(entry);
+            }
+        }
+
+        adapter.notifyDataSetChanged();
+
+        if (filteredEntries.isEmpty()) {
+            Toast.makeText(this, "No entries for selected date", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void openEntryDetail(JournalEntry entry) {
+        Intent intent = new Intent(this, EntryDetailActivity.class);
+        intent.putExtra("entryId", entry.getId());
+        startActivity(intent);
     }
 
     private void setupBottomNavigation() {
-        BottomNavigationView bottomNav = findViewById(R.id.bottomNavigationView);
-        bottomNav.setSelectedItemId(R.id.navigation_calendar);
+        bottomNavigationView.setSelectedItemId(R.id.navigation_calendar);
+        bottomNavigationView.setOnItemSelectedListener(item -> {
+            int itemId = item.getItemId();
 
-        bottomNav.setOnItemSelectedListener(item -> {
-            int id = item.getItemId();
-            if (id == R.id.navigation_home) {
+            if (itemId == R.id.navigation_home) {
                 startActivity(new Intent(this, MainActivity.class));
-            } else if (id == R.id.navigation_notes) {
-                startActivity(new Intent(this, NotesActivity.class));
-            } else if (id == R.id.navigation_journal) {
+                return true;
+            } else if (itemId == R.id.navigation_journal) {
                 startActivity(new Intent(this, JournalActivity.class));
-            } else if (id == R.id.navigation_calendar || id == R.id.navigation_profile) {
+                return true;
+            } else if (itemId == R.id.navigation_notes) {
+                startActivity(new Intent(this, NotesActivity.class));
+                return true;
+            } else if (itemId == R.id.navigation_calendar) {
+                return true;
+            } else if (itemId == R.id.navigation_profile) {
                 return true;
             }
-            finish();
-            return true;
+            return false;
         });
-    }
-
-    private void loadEntries(Calendar selectedDate) {
-        Date start = getStartOfDay(selectedDate);
-        Date end = getEndOfDay(selectedDate);
-
-        db.collection("entries")
-                .whereGreaterThanOrEqualTo("date", start)
-                .whereLessThan("date", end)
-                .get()
-                .addOnSuccessListener(query -> {
-                    entryList.clear();
-                    for (DocumentSnapshot doc : query.getDocuments()) {
-                        JournalEntry entry = new JournalEntry();
-                        entry.setId(doc.getId());
-                        entry.setNote(doc.getString("note"));
-                        entry.setMood(doc.contains("mood") ? doc.getLong("mood").intValue() : 1);
-                        entry.setImagePath(doc.getString("imagePath"));
-                        entry.setTags((List<String>) doc.get("tags"));
-                        entry.setDate(doc.getDate("date"));
-                        entryList.add(entry);
-                    }
-                    adapter.notifyDataSetChanged();
-                });
-    }
-
-    private Date getStartOfDay(Calendar date) {
-        Calendar c = (Calendar) date.clone();
-        c.set(Calendar.HOUR_OF_DAY, 0);
-        c.set(Calendar.MINUTE, 0);
-        c.set(Calendar.SECOND, 0);
-        c.set(Calendar.MILLISECOND, 0);
-        return c.getTime();
-    }
-
-    private Date getEndOfDay(Calendar date) {
-        Calendar c = (Calendar) date.clone();
-        c.set(Calendar.HOUR_OF_DAY, 23);
-        c.set(Calendar.MINUTE, 59);
-        c.set(Calendar.SECOND, 59);
-        c.set(Calendar.MILLISECOND, 999);
-        return c.getTime();
-    }
-
-    @Override
-    public void onNoteClick(JournalEntry entry) {
-        Intent intent = new Intent(this, JournalActivity.class);
-        intent.putExtra("entry", entry);
-        startActivity(intent);
     }
 }

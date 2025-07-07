@@ -8,7 +8,7 @@
     android:layout_marginTop="8dp"
     android:layout_marginEnd="8dp"
     android:layout_marginBottom="8dp"
-    app:cardBackgroundColor="#F5F7FA"
+    app:cardBackgroundColor="@color/cardBackground"
     app:cardCornerRadius="12dp"
     app:cardElevation="0dp">
 
@@ -33,7 +33,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:textColor="#808080"
+                android:textColor="@color/textSecondary"
                 android:textSize="14sp"
                 tools:text="Jan 25, 2025" />
 
@@ -52,14 +52,14 @@
             android:layout_marginTop="8dp"
             android:ellipsize="end"
             android:maxLines="3"
-            android:textColor="#333333"
+            android:textColor="@color/textSecondary"
             android:textSize="16sp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/headerRow"
             tools:text="Today I am grateful for my family and the support they've given me through tough times. It means so much to have people who care." />
 
-        <!-- Image View (for demo entries) -->
+        <!-- Image View -->
         <ImageView
             android:id="@+id/entryImageView"
             android:layout_width="match_parent"
@@ -80,7 +80,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:textColor="#4A89DC"
+            android:textColor="@color/textSecondary"
             android:textSize="14sp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"

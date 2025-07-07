@@ -1,4 +1,3 @@
-
 package com.example.mindnote;
 
 import android.view.LayoutInflater;
@@ -16,98 +15,73 @@ import java.util.List;
 
 public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NoteViewHolder> {
 
-    private List<JournalEntry> entries;
-    private OnNoteClickListener listener;
-
     public interface OnNoteClickListener {
         void onNoteClick(JournalEntry entry);
     }
+
+    private final List<JournalEntry> entries;
+    private final OnNoteClickListener listener;
 
     public NotesAdapter(List<JournalEntry> entries, OnNoteClickListener listener) {
         this.entries = entries;
         this.listener = listener;
     }
 
-    public void updateEntries(List<JournalEntry> newEntries) {
-        this.entries = newEntries;
-        notifyDataSetChanged();
-    }
-
     @NonNull
     @Override
     public NoteViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_note, parent, false);
+        View view = LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.item_note, parent, false);
         return new NoteViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull NoteViewHolder holder, int position) {
-        JournalEntry entry = entries.get(position);
-        holder.bind(entry);
+        holder.bind(entries.get(position));
     }
 
     @Override
     public int getItemCount() {
-        return entries == null ? 0 : entries.size();
+        return entries.size();
     }
 
     class NoteViewHolder extends RecyclerView.ViewHolder {
-        private TextView dateText;
-        private TextView moodIcon;
-        private TextView noteText;
-        private TextView tagsText;
-        private ImageView entryImageView;
+
+        private final TextView noteText;
+        private final TextView dateText;
+        private final TextView moodIcon;
+        private final TextView tagsText;
+        private final ImageView entryImage;
 
         public NoteViewHolder(@NonNull View itemView) {
             super(itemView);
-            dateText = itemView.findViewById(R.id.dateText);
-            moodIcon = itemView.findViewById(R.id.moodIcon);  // now TextView
             noteText = itemView.findViewById(R.id.noteText);
+            dateText = itemView.findViewById(R.id.dateText);
+            moodIcon = itemView.findViewById(R.id.moodIcon);
             tagsText = itemView.findViewById(R.id.tagsText);
-            entryImageView = itemView.findViewById(R.id.entryImageView);
-
-            itemView.setOnClickListener(v -> {
-                int position = getAdapterPosition();
-                if (position != RecyclerView.NO_POSITION && listener != null) {
-                    listener.onNoteClick(entries.get(position));
-                }
-            });
+            entryImage = itemView.findViewById(R.id.entryImageView);
         }
 
         public void bind(JournalEntry entry) {
+            noteText.setText(entry.getNote());
             dateText.setText(entry.getShortDate());
             moodIcon.setText(entry.getMoodEmoji());
-            noteText.setText(entry.getNote());
 
-            String tags = entry.getTagsAsString();
-            if (tags.isEmpty()) {
-                tagsText.setVisibility(View.GONE);
-            } else {
+            if (entry.getTags() != null && !entry.getTags().isEmpty()) {
+                tagsText.setText(entry.getTagsAsString());
                 tagsText.setVisibility(View.VISIBLE);
-                tagsText.setText(tags);
+            } else {
+                tagsText.setVisibility(View.GONE);
             }
 
-            if (entryImageView != null) {
-                String imagePath = entry.getImagePath();
-
-                if (JournalDataManager.isDemoImage(imagePath)) {
-                    if (imagePath.equals(JournalDataManager.DEMO_IMAGE_FAMILY)) {
-                        entryImageView.setImageResource(R.drawable.family_sunset);
-                    } else if (imagePath.equals(JournalDataManager.DEMO_IMAGE_MEDITATION)) {
-                        entryImageView.setImageResource(R.drawable.meditation_sunrise);
-                    } else if (imagePath.equals(JournalDataManager.DEMO_IMAGE_LIGHTBULB)) {
-                        entryImageView.setImageResource(R.drawable.lightbulb);
-                    }
-                    entryImageView.setVisibility(View.VISIBLE);
-                } else if (imagePath != null && !imagePath.isEmpty()) {
-                    Glide.with(itemView.getContext())
-                            .load(imagePath)
-                            .into(entryImageView);
-                    entryImageView.setVisibility(View.VISIBLE);
-                } else {
-                    entryImageView.setVisibility(View.GONE);
-                }
+            if (entry.getImagePath() != null && !entry.getImagePath().isEmpty()) {
+                entryImage.setVisibility(View.VISIBLE);
+                Glide.with(itemView.getContext()).load(entry.getImagePath()).into(entryImage);
+            } else {
+                entryImage.setVisibility(View.GONE);
             }
+
+            itemView.setOnClickListener(v -> listener.onNoteClick(entry));
         }
     }
 }

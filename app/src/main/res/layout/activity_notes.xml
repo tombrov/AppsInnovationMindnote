@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFFFFF"
+    android:background="@color/backgroundColor"
     tools:context=".NotesActivity">
 
     <!-- Header Title -->
@@ -16,7 +16,7 @@
         android:layout_marginTop="24dp"
         android:layout_marginEnd="24dp"
         android:text="My Notes"
-        android:textColor="#2E3B6B"
+        android:textColor="@color/textPrimary"
         android:textSize="28sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
@@ -31,12 +31,12 @@
         android:layout_marginStart="24dp"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="24dp"
-        app:cardBackgroundColor="#F5F7FA"
+        app:cardBackgroundColor="@color/cardBackground"
         app:cardCornerRadius="24dp"
         app:cardElevation="0dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/titleText">
+        app:layout_constraintTop_toBottomOf="@id/titleText">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -50,14 +50,14 @@
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:src="@drawable/ic_search"
-                android:tint="#757575" />
+                android:tint="@color/textHint" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
-                android:text="Search notes..."
-                android:textColor="#AAAAAA"
+                android:text="Search"
+                android:textColor="@color/textSecondary"
                 android:textSize="16sp" />
         </LinearLayout>
     </androidx.cardview.widget.CardView>
@@ -76,7 +76,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/searchCard"
+        app:layout_constraintTop_toBottomOf="@id/searchCard"
         tools:listitem="@layout/item_note" />
 
     <!-- Empty state view -->
@@ -90,21 +90,21 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/searchCard"
+        app:layout_constraintTop_toBottomOf="@id/searchCard"
         tools:visibility="visible">
 
         <ImageView
             android:layout_width="120dp"
             android:layout_height="120dp"
             android:src="@drawable/ic_empty_notes"
-            android:tint="#DDDDDD" />
+            android:tint="@color/textHint" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:text="No notes yet"
-            android:textColor="#757575"
+            android:textColor="@color/textSecondary"
             android:textSize="18sp"
             android:textStyle="bold" />
 
@@ -116,7 +116,7 @@
             android:paddingStart="32dp"
             android:paddingEnd="32dp"
             android:text="Your gratitude notes will appear here. Start by adding a new entry."
-            android:textColor="#AAAAAA"
+            android:textColor="@color/textHint"
             android:textSize="16sp" />
 
         <Button
@@ -124,14 +124,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:backgroundTint="#4A89DC"
+            android:backgroundTint="@color/primary"
             android:paddingStart="24dp"
             android:paddingTop="12dp"
             android:paddingEnd="24dp"
             android:paddingBottom="12dp"
             android:text="Add First Note"
             android:textAllCaps="false"
-            android:textColor="#FFFFFF"
+            android:textColor="@android:color/white"
             app:cornerRadius="24dp" />
     </LinearLayout>
 
@@ -140,7 +140,7 @@
         android:id="@+id/bottomNavigation"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="#FFFFFF"
+        android:background="@color/backgroundColor"
         app:itemIconTint="@drawable/bottom_nav_selector"
         app:itemTextColor="@drawable/bottom_nav_selector"
         app:labelVisibilityMode="labeled"

@@ -12,7 +12,20 @@
           "package_name": "com.example.mindnote"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "598759081807-b84g673pk54ransk4k1n0ttteih54nqe.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.mindnote",
+            "certificate_hash": "87362bc2483abf6ef483b252baa10500651e174b"
+          }
+        },
+        {
+          "client_id": "598759081807-8ed378u0sifrc2jui8a60ado1eeo7kmk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDyqhj2jMjauNantjMRAtUJd5aOqPjmalM"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "598759081807-8ed378u0sifrc2jui8a60ado1eeo7kmk.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

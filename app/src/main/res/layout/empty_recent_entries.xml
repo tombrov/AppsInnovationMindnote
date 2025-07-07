@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="16dp"
-    app:cardBackgroundColor="#F5F7FA"
+    app:cardBackgroundColor="@color/cardBackgroundAlt"
     app:cardCornerRadius="12dp"
     app:cardElevation="0dp">
 
@@ -19,14 +19,14 @@
             android:layout_width="64dp"
             android:layout_height="64dp"
             android:src="@drawable/ic_empty_notes"
-            android:tint="#CCCCCC" />
+            android:tint="@color/light_gray" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:text="No entries yet"
-            android:textColor="#757575"
+            android:textColor="@color/textSecondary"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -36,7 +36,7 @@
             android:layout_marginTop="8dp"
             android:gravity="center"
             android:text="Add your first gratitude note to see it here"
-            android:textColor="#AAAAAA"
+            android:textColor="@color/textTertiary"
             android:textSize="14sp" />
     </LinearLayout>
 </androidx.cardview.widget.CardView>

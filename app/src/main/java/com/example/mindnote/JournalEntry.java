@@ -1,3 +1,4 @@
+// JournalEntry.java
 package com.example.mindnote;
 
 import java.io.Serializable;
@@ -7,6 +8,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.Exclude;
 
 public class JournalEntry implements Serializable {
@@ -17,15 +19,25 @@ public class JournalEntry implements Serializable {
     private List<String> tags;
     private String imagePath;
 
+    // Default constructor required for Firestore
     public JournalEntry() {
         this.date = new Date();
         this.tags = new ArrayList<>();
     }
 
+    // Existing constructor
     public JournalEntry(Date date, String note, int mood) {
         this.date = date;
         this.note = note;
         this.mood = mood;
+        this.tags = new ArrayList<>();
+    }
+
+    // 🔄 New constructor to match JournalActivity usage
+    public JournalEntry(String title, String content, String imagePath, Timestamp timestamp) {
+        this.note = content; // title is not stored separately, use content as note
+        this.imagePath = imagePath;
+        this.date = timestamp.toDate();
         this.tags = new ArrayList<>();
     }
 

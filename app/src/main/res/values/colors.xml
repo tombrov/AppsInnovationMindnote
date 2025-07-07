@@ -1,16 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#4A89DC</color>
-    <color name="colorPrimaryDark">#2E3B6B</color>
-    <color name="colorAccent">#FF6B6B</color>
-    <color name="backgroundColor">#FFFFFF</color>
-    <color name="cardBackground">#F5F7FA</color>
-    <color name="textPrimary">#2E3B6B</color>
-    <color name="textSecondary">#333333</color>
-    <color name="textTertiary">#808080</color>
-    <color name="selected">#4A89DC</color>
-    <color name="unselected">#A0A0A0</color>
+    <color name="colorPrimary">#A3E4D7</color>
+    <color name="colorPrimaryDark">#6EC6B7</color>
+    <color name="colorAccent">#D6C1F2</color>
+    <color name="backgroundColor">#0E1B2C</color>
+    <color name="cardBackground">#1C2B3A</color>
+    <color name="textTertiary">#999999</color>
+    <color name="dark_navy">#0E1B2C</color>
+    <color name="selected">#A3E4D7</color>
+    <color name="unselected">#607D8B</color>
     <color name="white">#FFFFFF</color>
     <color name="light_gray">#DDDDDD</color>
     <color name="black">#000000</color>
+    <color name="dateColor">#DE64F3</color>
+    <color name="textPrimary">#FFFFFF</color>
+    <color name="textSecondary">#CCCCCC</color>
+    <color name="cardBackgroundAlt">#A64B61CE</color>
 </resources>
