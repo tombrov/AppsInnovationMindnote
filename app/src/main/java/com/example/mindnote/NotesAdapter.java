@@ -1,5 +1,7 @@
 package com.example.mindnote;
 
+import android.content.Context;
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,73 +17,61 @@ import java.util.List;
 
 public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NoteViewHolder> {
 
-    public interface OnNoteClickListener {
-        void onNoteClick(JournalEntry entry);
+    private List<JournalEntry> entries;
+    private final Context context;
+
+    public NotesAdapter(Context context) {
+        this.context = context;
     }
 
-    private final List<JournalEntry> entries;
-    private final OnNoteClickListener listener;
-
-    public NotesAdapter(List<JournalEntry> entries, OnNoteClickListener listener) {
+    public void setEntries(List<JournalEntry> entries) {
         this.entries = entries;
-        this.listener = listener;
+        notifyDataSetChanged();
     }
 
     @NonNull
     @Override
     public NoteViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext())
+        View itemView = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_note, parent, false);
-        return new NoteViewHolder(view);
+        return new NoteViewHolder(itemView);
     }
 
     @Override
     public void onBindViewHolder(@NonNull NoteViewHolder holder, int position) {
-        holder.bind(entries.get(position));
+        JournalEntry entry = entries.get(position);
+
+        holder.noteText.setText(entry.getNote() != null ? entry.getNote() : "No content");
+        holder.dateText.setText(entry.getFormattedDate());
+
+        if (entry.getImagePath() != null && !JournalDataManager.isDemoImage(entry.getImagePath())) {
+            Glide.with(context).load(entry.getImagePath()).into(holder.entryImage);
+            holder.entryImage.setVisibility(View.VISIBLE);
+        } else {
+            holder.entryImage.setVisibility(View.GONE);
+        }
+
+        holder.itemView.setOnClickListener(v -> {
+            Intent intent = new Intent(context, JournalActivity.class);
+            intent.putExtra("entryId", entry.getId());
+            context.startActivity(intent);
+        });
     }
 
     @Override
     public int getItemCount() {
-        return entries.size();
+        return entries != null ? entries.size() : 0;
     }
 
-    class NoteViewHolder extends RecyclerView.ViewHolder {
+    static class NoteViewHolder extends RecyclerView.ViewHolder {
+        TextView noteText, dateText;
+        ImageView entryImage;
 
-        private final TextView noteText;
-        private final TextView dateText;
-        private final TextView moodIcon;
-        private final TextView tagsText;
-        private final ImageView entryImage;
-
-        public NoteViewHolder(@NonNull View itemView) {
+        NoteViewHolder(View itemView) {
             super(itemView);
-            noteText = itemView.findViewById(R.id.noteText);
+            noteText = itemView.findViewById(R.id.notePreviewText);
             dateText = itemView.findViewById(R.id.dateText);
-            moodIcon = itemView.findViewById(R.id.moodIcon);
-            tagsText = itemView.findViewById(R.id.tagsText);
-            entryImage = itemView.findViewById(R.id.entryImageView);
-        }
-
-        public void bind(JournalEntry entry) {
-            noteText.setText(entry.getNote());
-            dateText.setText(entry.getShortDate());
-            moodIcon.setText(entry.getMoodEmoji());
-
-            if (entry.getTags() != null && !entry.getTags().isEmpty()) {
-                tagsText.setText(entry.getTagsAsString());
-                tagsText.setVisibility(View.VISIBLE);
-            } else {
-                tagsText.setVisibility(View.GONE);
-            }
-
-            if (entry.getImagePath() != null && !entry.getImagePath().isEmpty()) {
-                entryImage.setVisibility(View.VISIBLE);
-                Glide.with(itemView.getContext()).load(entry.getImagePath()).into(entryImage);
-            } else {
-                entryImage.setVisibility(View.GONE);
-            }
-
-            itemView.setOnClickListener(v -> listener.onNoteClick(entry));
+            entryImage = itemView.findViewById(R.id.entryImage);
         }
     }
 }

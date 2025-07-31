@@ -9,7 +9,7 @@
 
     <!-- Header Title -->
     <TextView
-        android:id="@+id/titleText"
+        android:id="@+id/notesTitle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="24dp"
@@ -36,7 +36,7 @@
         app:cardElevation="0dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/titleText">
+        app:layout_constraintTop_toBottomOf="@id/notesTitle">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -50,7 +50,7 @@
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:src="@drawable/ic_search"
-                android:tint="@color/textHint" />
+                android:tint="@color/textTertiary" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -97,7 +97,7 @@
             android:layout_width="120dp"
             android:layout_height="120dp"
             android:src="@drawable/ic_empty_notes"
-            android:tint="@color/textHint" />
+            android:tint="@color/textTertiary" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -116,7 +116,7 @@
             android:paddingStart="32dp"
             android:paddingEnd="32dp"
             android:text="Your gratitude notes will appear here. Start by adding a new entry."
-            android:textColor="@color/textHint"
+            android:textColor="@color/textTertiary"
             android:textSize="16sp" />
 
         <Button
@@ -124,14 +124,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:backgroundTint="@color/primary"
+            android:backgroundTint="@color/colorAccent"
             android:paddingStart="24dp"
             android:paddingTop="12dp"
             android:paddingEnd="24dp"
             android:paddingBottom="12dp"
             android:text="Add First Note"
             android:textAllCaps="false"
-            android:textColor="@android:color/white"
+            android:textColor="@color/dark_navy"
             app:cornerRadius="24dp" />
     </LinearLayout>
 

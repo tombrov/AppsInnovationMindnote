@@ -3,110 +3,75 @@ package com.example.mindnote;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.CalendarView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 
 public class CalendarActivity extends AppCompatActivity {
 
-    private CalendarView calendarView;
-    private NotesAdapter adapter;
-    private List<JournalEntry> allEntries = new ArrayList<>();
-    private List<JournalEntry> filteredEntries = new ArrayList<>();
     private JournalDataManager dataManager;
-    private BottomNavigationView bottomNavigationView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_calendar);
 
-        calendarView = findViewById(R.id.calendarView);
-        RecyclerView notesRecyclerView = findViewById(R.id.notesRecyclerView);
-        bottomNavigationView = findViewById(R.id.bottomNavigationView);
-        bottomNavigationView.setSelectedItemId(R.id.navigation_calendar);
+        CalendarView calendarView = findViewById(R.id.calendarView);
+        BottomNavigationView bottomNavigation = findViewById(R.id.bottomNavigation);
 
         dataManager = JournalDataManager.getInstance(this);
-        adapter = new NotesAdapter(filteredEntries, this::openEntryDetail);
-
-        notesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        notesRecyclerView.setAdapter(adapter);
-
-        loadEntries();
 
         calendarView.setOnDateChangeListener((view, year, month, dayOfMonth) -> {
             Calendar selected = Calendar.getInstance();
-            selected.set(year, month, dayOfMonth);
-            filterEntriesByDate(selected.getTime());
-        });
+            selected.set(year, month, dayOfMonth, 0, 0, 0);
+            selected.set(Calendar.MILLISECOND, 0);
+            Date selectedDate = selected.getTime();
 
-        setupBottomNavigation();
-    }
-
-    private void loadEntries() {
-        dataManager.loadEntriesFromFirestore(entries -> {
-            allEntries.clear();
-            allEntries.addAll(entries);
-            filterEntriesByDate(new Date(calendarView.getDate()));
-        });
-    }
-
-    private void filterEntriesByDate(Date selectedDate) {
-        filteredEntries.clear();
-        SimpleDateFormat fmt = new SimpleDateFormat("yyyyMMdd", Locale.getDefault());
-        String target = fmt.format(selectedDate);
-
-        for (JournalEntry entry : allEntries) {
-            if (entry.getDate() != null && fmt.format(entry.getDate()).equals(target)) {
-                filteredEntries.add(entry);
+            List<JournalEntry> allEntries = dataManager.getAllEntries();
+            for (JournalEntry entry : allEntries) {
+                if (entry.getDate() != null && isSameDay(entry.getDate(), selectedDate)) {
+                    Intent intent = new Intent(this, JournalActivity.class);
+                    intent.putExtra("entryId", entry.getId());
+                    startActivity(intent);
+                    break;
+                }
             }
-        }
+        });
 
-        adapter.notifyDataSetChanged();
-
-        if (filteredEntries.isEmpty()) {
-            Toast.makeText(this, "No entries for selected date", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private void openEntryDetail(JournalEntry entry) {
-        Intent intent = new Intent(this, EntryDetailActivity.class);
-        intent.putExtra("entryId", entry.getId());
-        startActivity(intent);
-    }
-
-    private void setupBottomNavigation() {
-        bottomNavigationView.setSelectedItemId(R.id.navigation_calendar);
-        bottomNavigationView.setOnItemSelectedListener(item -> {
-            int itemId = item.getItemId();
-
-            if (itemId == R.id.navigation_home) {
+        bottomNavigation.setSelectedItemId(R.id.navigation_calendar);
+        bottomNavigation.setOnItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.navigation_home) {
                 startActivity(new Intent(this, MainActivity.class));
-                return true;
-            } else if (itemId == R.id.navigation_journal) {
-                startActivity(new Intent(this, JournalActivity.class));
-                return true;
-            } else if (itemId == R.id.navigation_notes) {
+            } else if (id == R.id.navigation_notes) {
                 startActivity(new Intent(this, NotesActivity.class));
+            } else if (id == R.id.navigation_journal) {
+                startActivity(new Intent(this, JournalActivity.class));
+            } else if (id == R.id.navigation_profile) {
+                startActivity(new Intent(this, ProfileActivity.class));
+            } else if (id == R.id.navigation_calendar) {
                 return true;
-            } else if (itemId == R.id.navigation_calendar) {
-                return true;
-            } else if (itemId == R.id.navigation_profile) {
-                return true;
+            } else {
+                return false;
             }
-            return false;
+            overridePendingTransition(0, 0);
+            return true;
         });
+    }
+
+    private boolean isSameDay(Date d1, Date d2) {
+        Calendar cal1 = Calendar.getInstance();
+        cal1.setTime(d1);
+        Calendar cal2 = Calendar.getInstance();
+        cal2.setTime(d2);
+
+        return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR)
+                && cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR);
     }
 }

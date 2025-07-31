@@ -47,6 +47,7 @@ dependencies {
 
     // Firebase Authentication
     implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-messaging:23.4.1")
 
     // Google Sign-In (used with Firebase Auth)
     implementation("com.google.android.gms:play-services-auth:21.0.0")

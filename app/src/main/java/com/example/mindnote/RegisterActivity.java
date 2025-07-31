@@ -5,48 +5,58 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 public class RegisterActivity extends AppCompatActivity {
 
-    private FirebaseAuth mAuth;
+    private FirebaseAuth auth;
+    private EditText emailInput, passwordInput;
+    private Button registerButton;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
 
-        mAuth = FirebaseAuth.getInstance();
+        auth = FirebaseAuth.getInstance();
 
-        EditText emailInput = findViewById(R.id.register_email);
-        EditText passwordInput = findViewById(R.id.register_password);
-        Button registerButton = findViewById(R.id.register_button);
-        TextView loginRedirect = findViewById(R.id.login_redirect);
+        emailInput = findViewById(R.id.registerEmailInput);
+        passwordInput = findViewById(R.id.registerPasswordInput);
+        registerButton = findViewById(R.id.registerButton);
 
-        registerButton.setOnClickListener(v -> {
-            String email = emailInput.getText().toString();
-            String password = passwordInput.getText().toString();
+        registerButton.setOnClickListener(v -> attemptRegister());
+    }
 
-            if (TextUtils.isEmpty(email) || TextUtils.isEmpty(password)) {
-                Toast.makeText(this, "Email and password cannot be empty", Toast.LENGTH_SHORT).show();
-            } else {
-                mAuth.createUserWithEmailAndPassword(email, password)
-                        .addOnCompleteListener(this, task -> {
-                            if (task.isSuccessful()) {
-                                startActivity(new Intent(this, MainActivity.class));
-                                finish();
-                            } else {
-                                Toast.makeText(this, "Registration failed.", Toast.LENGTH_SHORT).show();
-                            }
-                        });
-            }
-        });
+    private void attemptRegister() {
+        String email = emailInput.getText().toString().trim();
+        String password = passwordInput.getText().toString().trim();
 
-        loginRedirect.setOnClickListener(v -> startActivity(new Intent(this, LoginActivity.class)));
+        if (TextUtils.isEmpty(email) || TextUtils.isEmpty(password)) {
+            Toast.makeText(this, "Please enter email and password", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        auth.createUserWithEmailAndPassword(email, password)
+                .addOnSuccessListener(authResult -> {
+                    FirebaseUser user = auth.getCurrentUser();
+                    if (user != null && (user.getDisplayName() == null || user.getDisplayName().isEmpty())) {
+                        startActivity(new Intent(this, SetDisplayNameActivity.class));
+                    } else {
+                        goToMainScreen();
+                    }
+                })
+                .addOnFailureListener(e ->
+                        Toast.makeText(this, "Registration failed: " + e.getMessage(), Toast.LENGTH_LONG).show());
+    }
+
+    private void goToMainScreen() {
+        startActivity(new Intent(this, MainActivity.class));
+        finish();
     }
 }

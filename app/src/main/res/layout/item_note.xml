@@ -1,91 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginStart="8dp"
-    android:layout_marginTop="8dp"
-    android:layout_marginEnd="8dp"
-    android:layout_marginBottom="8dp"
-    app:cardBackgroundColor="@color/cardBackground"
+    android:layout_marginBottom="16dp"
+    app:cardBackgroundColor="@color/cardBackgroundAlt"
     app:cardCornerRadius="12dp"
     app:cardElevation="0dp">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Date and Mood Row -->
-        <LinearLayout
-            android:id="@+id/headerRow"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
-
-            <TextView
-                android:id="@+id/dateText"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:textColor="@color/textSecondary"
-                android:textSize="14sp"
-                tools:text="Jan 25, 2025" />
-
-            <TextView
-                android:id="@+id/moodIcon"
-                android:textSize="24sp"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
-        </LinearLayout>
-
-        <!-- Note Content -->
+        <!-- Match NotesAdapter.java -> dateText -->
         <TextView
-            android:id="@+id/noteText"
-            android:layout_width="0dp"
+            android:id="@+id/dateText"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:ellipsize="end"
-            android:maxLines="3"
-            android:textColor="@color/textSecondary"
-            android:textSize="16sp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/headerRow"
-            tools:text="Today I am grateful for my family and the support they've given me through tough times. It means so much to have people who care." />
+            android:text="June 30, 2025"
+            android:textSize="14sp"
+            android:textColor="@color/textTertiary"
+            android:layout_marginBottom="4dp" />
 
-        <!-- Image View -->
+        <!-- Match NotesAdapter.java -> noteText -->
+        <TextView
+            android:id="@+id/notePreviewText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Today I felt grateful for..."
+            android:textSize="16sp"
+            android:textColor="@color/textPrimary"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Match NotesAdapter.java -> entryImage -->
         <ImageView
-            android:id="@+id/entryImageView"
+            android:id="@+id/entryImage"
             android:layout_width="match_parent"
-            android:layout_height="120dp"
-            android:layout_marginTop="8dp"
-            android:adjustViewBounds="true"
+            android:layout_height="200dp"
             android:scaleType="centerCrop"
             android:visibility="gone"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/noteText"
-            tools:src="@drawable/family_sunset"
-            tools:visibility="visible" />
+            android:layout_marginBottom="8dp" />
 
-        <!-- Tags -->
+        <!-- These are unused by NotesAdapter, but safe to keep for future use -->
         <TextView
-            android:id="@+id/tagsText"
-            android:layout_width="0dp"
+            android:id="@+id/noteTagsText"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:textColor="@color/textSecondary"
+            android:text="#gratitude #family"
             android:textSize="14sp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/entryImageView"
-            tools:text="Family, Health" />
+            android:textColor="@color/textSecondary"
+            android:layout_marginBottom="4dp" />
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+        <TextView
+            android:id="@+id/noteMoodText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="😊"
+            android:textSize="18sp"
+            android:layout_marginTop="4dp" />
+    </LinearLayout>
 </androidx.cardview.widget.CardView>

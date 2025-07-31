@@ -37,57 +37,49 @@ public class NotesActivity extends AppCompatActivity {
         FirebaseAnalytics analytics = FirebaseAnalytics.getInstance(this);
         dataManager.setAnalytics(analytics);
 
+        notesAdapter = new NotesAdapter(this);
         notesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        notesRecyclerView.setAdapter(notesAdapter);
 
-        addNoteButton.setOnClickListener(v -> {
-            Intent intent = new Intent(NotesActivity.this, JournalActivity.class);
-            startActivity(intent);
-        });
+        addNoteButton.setOnClickListener(v -> startActivity(new Intent(this, JournalActivity.class)));
 
-        bottomNavigation.setSelectedItemId(R.id.navigation_notes);
+        bottomNavigation.setSelectedItemId(R.id.navigation_notes); // Use correct ID from menu
         bottomNavigation.setOnItemSelectedListener(item -> {
             int itemId = item.getItemId();
-
-            if (itemId == R.id.navigation_home) {
-                startActivity(new Intent(this, MainActivity.class));
-                return true;
+            if (itemId == R.id.navigation_notes) {
+                return true; // already here
             } else if (itemId == R.id.navigation_journal) {
                 startActivity(new Intent(this, JournalActivity.class));
+                overridePendingTransition(0, 0);
+                return true;
+            } else if (itemId == R.id.navigation_home) {
+                startActivity(new Intent(this, MainActivity.class));
+                overridePendingTransition(0, 0);
                 return true;
             } else if (itemId == R.id.navigation_calendar) {
                 startActivity(new Intent(this, CalendarActivity.class));
+                overridePendingTransition(0, 0);
                 return true;
             } else if (itemId == R.id.navigation_profile) {
-                return true;
-            } else if (itemId == R.id.navigation_notes) {
+                startActivity(new Intent(this, ProfileActivity.class));
+                overridePendingTransition(0, 0);
                 return true;
             }
-
             return false;
         });
+
+        loadNotes();
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
+    private void loadNotes() {
         dataManager.loadEntriesFromFirestore(entries -> {
-            if (entries.isEmpty()) {
-                emptyStateContainer.setVisibility(View.VISIBLE);
-                notesRecyclerView.setVisibility(View.GONE);
-            } else {
+            if (entries != null && !entries.isEmpty()) {
+                notesAdapter.setEntries(entries);
                 emptyStateContainer.setVisibility(View.GONE);
                 notesRecyclerView.setVisibility(View.VISIBLE);
-
-                notesAdapter = new NotesAdapter(entries, entry -> {
-                    Intent intent = new Intent(NotesActivity.this, EntryDetailActivity.class);
-                    intent.putExtra("title", entry.getNote());
-                    intent.putExtra("content", entry.getNote()); // or separate content if available
-                    intent.putExtra("imageUrl", entry.getImagePath());
-                    intent.putExtra("timestamp", entry.getFormattedDate());
-                    startActivity(intent);
-                });
-
-                notesRecyclerView.setAdapter(notesAdapter);
+            } else {
+                notesRecyclerView.setVisibility(View.GONE);
+                emptyStateContainer.setVisibility(View.VISIBLE);
             }
         });
     }

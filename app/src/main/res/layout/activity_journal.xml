@@ -17,6 +17,7 @@
             android:orientation="vertical"
             android:padding="24dp">
 
+            <!-- Title -->
             <EditText
                 android:id="@+id/titleInput"
                 android:layout_width="match_parent"
@@ -28,6 +29,7 @@
                 android:padding="12dp"
                 android:layout_marginBottom="16dp" />
 
+            <!-- Content -->
             <EditText
                 android:id="@+id/contentInput"
                 android:layout_width="match_parent"
@@ -40,13 +42,80 @@
                 android:padding="12dp"
                 android:layout_marginBottom="16dp" />
 
+            <!-- Mood Selector -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:id="@+id/moodHappy"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="😊"
+                    android:textSize="32sp"
+                    android:layout_marginEnd="24dp" />
+
+                <TextView
+                    android:id="@+id/moodNeutral"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="😐"
+                    android:textSize="32sp"
+                    android:layout_marginEnd="24dp" />
+
+                <TextView
+                    android:id="@+id/moodSad"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="😢"
+                    android:textSize="32sp" />
+            </LinearLayout>
+
+            <!-- Tag Input -->
+            <EditText
+                android:id="@+id/tagInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Add a tag"
+                android:textColor="@color/textPrimary"
+                android:textColorHint="@color/textSecondary"
+                android:background="@color/cardBackground"
+                android:padding="12dp"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Tag Chips -->
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/tagChipGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:singleLine="false"
+                app:chipSpacing="8dp" />
+
+            <!-- Preview Image -->
             <ImageView
                 android:id="@+id/previewImage"
                 android:layout_width="match_parent"
                 android:layout_height="200dp"
                 android:scaleType="centerCrop"
-                android:layout_marginBottom="16dp" />
+                android:visibility="gone"
+                android:layout_marginBottom="12dp" />
 
+            <!-- Remove Image Button -->
+            <Button
+                android:id="@+id/removeImageButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Remove Image"
+                style="@style/MindNoteButton"
+                android:layout_gravity="center_horizontal"
+                android:visibility="gone"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Take Photo -->
             <Button
                 android:id="@+id/captureImageButton"
                 android:layout_width="match_parent"
@@ -55,6 +124,7 @@
                 style="@style/MindNoteButton"
                 android:layout_marginBottom="12dp" />
 
+            <!-- Choose from Gallery -->
             <Button
                 android:id="@+id/pickImageButton"
                 android:layout_width="match_parent"
@@ -63,6 +133,7 @@
                 style="@style/MindNoteButton"
                 android:layout_marginBottom="12dp" />
 
+            <!-- Save Entry -->
             <Button
                 android:id="@+id/saveEntryButton"
                 android:layout_width="match_parent"
@@ -70,6 +141,7 @@
                 android:text="Save Entry"
                 style="@style/MindNoteButton"
                 android:layout_marginBottom="12dp" />
+
         </LinearLayout>
     </ScrollView>
 
@@ -81,8 +153,5 @@
         app:itemIconTint="@drawable/bottom_nav_selector"
         app:itemTextColor="@drawable/bottom_nav_selector"
         app:labelVisibilityMode="labeled"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
         app:menu="@menu/bottom_navigation_menu" />
 </LinearLayout>

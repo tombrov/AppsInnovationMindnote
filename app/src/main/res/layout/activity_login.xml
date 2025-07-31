@@ -24,11 +24,11 @@
         android:layout_marginBottom="4dp" />
 
     <EditText
-        android:id="@+id/email_input"
+        android:id="@+id/loginEmailInput"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Email"
-        ndroid:textColor="@color/textTertiary"
+        android:textColor="@color/dark_navy"
         android:textColorHint="@color/dark_navy"
         android:background="@color/colorAccent"
         android:inputType="textEmailAddress"
@@ -36,20 +36,19 @@
         android:layout_marginBottom="12dp" />
 
     <EditText
-        android:id="@+id/password_input"
+        android:id="@+id/loginPasswordInput"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Password"
-        android:textColor="@color/textTertiary"
+        android:textColor="@color/dark_navy"
         android:textColorHint="@color/dark_navy"
         android:background="@color/colorAccent"
         android:inputType="textPassword"
         android:padding="12dp"
         android:layout_marginBottom="24dp" />
 
-
     <Button
-        android:id="@+id/email_sign_in_button"
+        android:id="@+id/loginButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Sign in"
@@ -65,7 +64,7 @@
         android:layout_marginBottom="12dp" />
 
     <Button
-        android:id="@+id/sign_in_button"
+        android:id="@+id/googleSignInButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Sign in with Google"
@@ -80,7 +79,7 @@
         android:layout_marginBottom="4dp" />
 
     <TextView
-        android:id="@+id/register_redirect"
+        android:id="@+id/registerLink"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Don’t have an account? Sign up"

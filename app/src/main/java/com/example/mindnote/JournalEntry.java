@@ -1,4 +1,3 @@
-// JournalEntry.java
 package com.example.mindnote;
 
 import java.io.Serializable;
@@ -13,19 +12,18 @@ import com.google.firebase.firestore.Exclude;
 
 public class JournalEntry implements Serializable {
     private String id;
+    private String title; // ✅ NEW FIELD
     private Date date;
     private String note;
     private int mood;
     private List<String> tags;
     private String imagePath;
 
-    // Default constructor required for Firestore
     public JournalEntry() {
         this.date = new Date();
         this.tags = new ArrayList<>();
     }
 
-    // Existing constructor
     public JournalEntry(Date date, String note, int mood) {
         this.date = date;
         this.note = note;
@@ -33,68 +31,38 @@ public class JournalEntry implements Serializable {
         this.tags = new ArrayList<>();
     }
 
-    // 🔄 New constructor to match JournalActivity usage
     public JournalEntry(String title, String content, String imagePath, Timestamp timestamp) {
-        this.note = content; // title is not stored separately, use content as note
+        this.title = title;
+        this.note = content;
         this.imagePath = imagePath;
         this.date = timestamp.toDate();
         this.tags = new ArrayList<>();
     }
 
-    public String getId() {
-        return id;
-    }
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
 
-    public void setId(String id) {
-        this.id = id;
-    }
+    public String getTitle() { return title; } // ✅
+    public void setTitle(String title) { this.title = title; } // ✅
 
-    public Date getDate() {
-        return date;
-    }
+    public Date getDate() { return date; }
+    public void setDate(Date date) { this.date = date; }
 
-    public void setDate(Date date) {
-        this.date = date;
-    }
+    public String getNote() { return note; }
+    public void setNote(String note) { this.note = note; }
 
-    public String getNote() {
-        return note;
-    }
+    public int getMood() { return mood; }
+    public void setMood(int mood) { this.mood = mood; }
 
-    public void setNote(String note) {
-        this.note = note;
-    }
-
-    public int getMood() {
-        return mood;
-    }
-
-    public void setMood(int mood) {
-        this.mood = mood;
-    }
-
-    public List<String> getTags() {
-        return tags;
-    }
-
-    public void setTags(List<String> tags) {
-        this.tags = tags;
-    }
-
+    public List<String> getTags() { return tags; }
+    public void setTags(List<String> tags) { this.tags = tags; }
     public void addTag(String tag) {
-        if (this.tags == null) {
-            this.tags = new ArrayList<>();
-        }
+        if (this.tags == null) this.tags = new ArrayList<>();
         this.tags.add(tag);
     }
 
-    public String getImagePath() {
-        return imagePath;
-    }
-
-    public void setImagePath(String imagePath) {
-        this.imagePath = imagePath;
-    }
+    public String getImagePath() { return imagePath; }
+    public void setImagePath(String imagePath) { this.imagePath = imagePath; }
 
     @Exclude
     public String getFormattedDate() {
@@ -123,9 +91,9 @@ public class JournalEntry implements Serializable {
     @Exclude
     public String getMoodEmoji() {
         switch (mood) {
-            case 0: return "😊"; // happy
-            case 1: return "😐"; // neutral
-            case 2: return "😢"; // sad
+            case 0: return "😊";
+            case 1: return "😐";
+            case 2: return "😢";
             default: return "😐";
         }
     }
