@@ -108,25 +108,6 @@ We handled null edge cases using defensive programming and used Crashlytics logs
 
 ---
 
-## 📁 Folder Structure (Summary)
-
-Mindnote/
-├── activities/
-│ ├── MainActivity.java
-│ ├── JournalActivity.java
-│ ├── NotesActivity.java
-│ ├── ProfileActivity.java
-│ └── EntryDetailActivity.java
-│ └── NotesAdapter.java
-│ └── JournalDataManager.java
-├── res/
-│ ├── layout/
-│ ├── drawable/
-│ ├── values/
-
-
----
-
 ## 🧪 Quality Assurance (QA)
 
 We tested the app using both manual and real-device testing strategies:
