@@ -16,4 +16,5 @@
     <color name="textPrimary">#FFFFFF</color>
     <color name="textSecondary">#CCCCCC</color>
     <color name="cardBackgroundAlt">#A64B61CE</color>
+    <color name="deleteRed">#E13838</color>
 </resources>

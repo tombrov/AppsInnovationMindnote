@@ -19,7 +19,6 @@
             android:id="@+id/dateText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="June 30, 2025"
             android:textSize="14sp"
             android:textColor="@color/textTertiary"
             android:layout_marginBottom="4dp" />
@@ -29,7 +28,6 @@
             android:id="@+id/notePreviewText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Today I felt grateful for..."
             android:textSize="16sp"
             android:textColor="@color/textPrimary"
             android:layout_marginBottom="8dp" />
@@ -48,7 +46,6 @@
             android:id="@+id/noteTagsText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="#gratitude #family"
             android:textSize="14sp"
             android:textColor="@color/textSecondary"
             android:layout_marginBottom="4dp" />
@@ -57,7 +54,6 @@
             android:id="@+id/noteMoodText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="😊"
             android:textSize="18sp"
             android:layout_marginTop="4dp" />
     </LinearLayout>

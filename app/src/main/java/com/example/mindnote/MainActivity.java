@@ -15,15 +15,16 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.analytics.FirebaseAnalytics;
 
-import java.util.Calendar;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
     private BottomNavigationView bottomNavigationView;
     private MaterialButton addEntryButton;
-    private TextView viewAllButton;
+    private TextView viewAllButton, entriesCountText, streakCountText;
     private LinearLayout recentEntriesContainer;
     private JournalDataManager dataManager;
 
@@ -39,6 +40,8 @@ public class MainActivity extends AppCompatActivity {
         bottomNavigationView = findViewById(R.id.bottomNavigation);
         addEntryButton = findViewById(R.id.addEntryButton);
         viewAllButton = findViewById(R.id.viewAllButton);
+        entriesCountText = findViewById(R.id.entriesCountText);
+        streakCountText = findViewById(R.id.streakCountText);
         recentEntriesContainer = findViewById(R.id.recentEntriesContainer);
 
         bottomNavigationView.setSelectedItemId(R.id.navigation_home);
@@ -71,7 +74,22 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(new Intent(this, NotesActivity.class)));
 
         loadRecentEntries();
+        updateStats();
     }
+
+    private void updateStats() {
+        int entryCount = dataManager.getEntryCount();
+        int streak = dataManager.calculateStreak();
+
+        entriesCountText.setText(entryCount + " entries");
+
+        if (streak >= 3){
+            streakCountText.setText("🔥 " + streak + " day streak");
+        } else {
+            streakCountText.setText(streak + " day streak");
+        }
+    }
+
 
     private void loadRecentEntries() {
         dataManager.loadEntriesFromFirestore(entries -> {

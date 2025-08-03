@@ -74,4 +74,14 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NoteViewHold
             entryImage = itemView.findViewById(R.id.entryImage);
         }
     }
+
+    public JournalEntry getEntryAt(int position) {
+        return entries.get(position);
+    }
+
+    public void removeEntryAt(int position) {
+        entries.remove(position);
+        notifyItemRemoved(position);
+    }
+
 }

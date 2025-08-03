@@ -17,6 +17,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.UserProfileChangeRequest;
@@ -34,6 +35,7 @@ public class ProfileActivity extends AppCompatActivity {
     private static final String PROFILE_IMAGE_PATH = "profile_pictures";
 
     private ImageView profileImageView;
+    private BottomNavigationView bottomNavigationView;
     private TextView emailTextView, statsTextView, lastEntryTextView;
     private EditText displayNameEditText;
     private Button saveNameButton, logoutButton;
@@ -70,6 +72,7 @@ public class ProfileActivity extends AppCompatActivity {
         saveNameButton = findViewById(R.id.saveNameButton);
         logoutButton = findViewById(R.id.logoutButton);
         notificationSwitch = findViewById(R.id.notificationSwitch);
+        bottomNavigationView = findViewById(R.id.bottomNavigation);
 
         emailTextView.setText(user != null ? user.getEmail() : "Not signed in");
         displayNameEditText.setText(user != null ? user.getDisplayName() : "");
@@ -81,7 +84,30 @@ public class ProfileActivity extends AppCompatActivity {
         profileImageView.setOnClickListener(v -> pickImage());
 
         FirebaseMessaging.getInstance().getToken().addOnSuccessListener(token ->
-                notificationSwitch.setChecked(true)); // Simplified toggle logic
+                notificationSwitch.setChecked(true));
+
+        bottomNavigationView.setSelectedItemId(R.id.navigation_profile);
+        bottomNavigationView.setOnItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.navigation_profile) return true;
+            if (id == R.id.navigation_calendar) {
+                startActivity(new Intent(this, CalendarActivity.class));
+                return true;
+            }
+            if (id == R.id.navigation_notes) {
+                startActivity(new Intent(this, NotesActivity.class));
+                return true;
+            }
+            if (id == R.id.navigation_home) {
+                startActivity(new Intent(this, MainActivity.class));
+                return true;
+            }
+            if (id == R.id.navigation_journal) {
+                startActivity(new Intent(this, JournalActivity.class));
+                return true;
+            }
+            return false;
+        });
     }
 
     private void updateStats() {
@@ -89,7 +115,7 @@ public class ProfileActivity extends AppCompatActivity {
         int streak = dataManager.calculateStreak();
         Date lastEntry = dataManager.getLastEntryDate();
 
-        statsTextView.setText(entryCount + " entries | " + streak + "-day streak");
+        statsTextView.setText(entryCount + " entries | " + streak + " day streak");
 
         if (lastEntry != null) {
             SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());

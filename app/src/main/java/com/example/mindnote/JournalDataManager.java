@@ -4,12 +4,11 @@ import android.content.Context;
 import android.os.Bundle;
 import android.util.Log;
 
-import com.google.firebase.Timestamp;
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.CollectionReference;
-import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
@@ -22,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.HashSet;
 
 public class JournalDataManager {
 
@@ -64,6 +64,11 @@ public class JournalDataManager {
     private CollectionReference getUserEntriesRef() {
         if (user == null) return null;
         return db.collection("users").document(user.getUid()).collection("entries");
+    }
+
+    private CollectionReference getMetaRef() {
+        if (user == null) return null;
+        return db.collection("users").document(user.getUid()).collection("meta");
     }
 
     public interface FirestoreCallback {
@@ -128,6 +133,56 @@ public class JournalDataManager {
                     }
                 })
                 .addOnFailureListener(e -> Log.e(TAG, "Add entry failed", e));
+    }
+
+    public void saveTagsToFirestore(Set<String> newTags) {
+        if (user == null || newTags == null || newTags.isEmpty()) return;
+
+        getMetaRef()
+                .document("tags")
+                .get()
+                .addOnSuccessListener(doc -> {
+                    List<String> existingTags = new ArrayList<>();
+                    if (doc.exists() && doc.get("tags") instanceof List) {
+                        existingTags.addAll((List<String>) doc.get("tags"));
+                    }
+
+                    Set<String> mergedTags = new HashSet<>(existingTags);
+                    mergedTags.addAll(newTags);
+
+                    Map<String, Object> data = new HashMap<>();
+                    data.put("tags", new ArrayList<>(mergedTags));
+
+                    getMetaRef()
+                            .document("tags")
+                            .set(data, SetOptions.merge())
+                            .addOnSuccessListener(aVoid -> Log.d(TAG, "Tags merged and saved to Firestore"))
+                            .addOnFailureListener(e -> Log.e(TAG, "Failed to save merged tags to Firestore", e));
+                })
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to load existing tags before merge", e));
+    }
+
+    public void loadTagsFromFirestore(Consumer<List<String>> callback) {
+        if (user == null) {
+            callback.accept(new ArrayList<>());
+            return;
+        }
+
+        getMetaRef()
+                .document("tags")
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (doc.exists()) {
+                        List<String> tags = (List<String>) doc.get("tags");
+                        callback.accept(tags != null ? tags : new ArrayList<>());
+                    } else {
+                        callback.accept(new ArrayList<>());
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to load tags from Firestore", e);
+                    callback.accept(new ArrayList<>());
+                });
     }
 
     public void deleteEntry(String entryId, Consumer<Boolean> callback) {

@@ -26,38 +26,30 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
 import java.io.ByteArrayOutputStream;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class JournalActivity extends AppCompatActivity {
 
     private EditText titleInput, contentInput, tagInput;
     private ImageView previewImage;
     private TextView moodHappy, moodNeutral, moodSad;
-    private ChipGroup tagChipGroup;
-    private Button pickImageButton, captureImageButton, removeImageButton, saveEntryButton;
+    private ChipGroup tagChipGroup, previousTagChipGroup;
+    private Button pickImageButton, captureImageButton, saveEntryButton;
     private BottomNavigationView bottomNavigation;
 
     private Uri imageUri;
     private FirebaseUser user;
-    private String editingEntryId = null;
-
     private int selectedMood = 0;
     private final Set<String> tags = new HashSet<>();
+
+    private String editingEntryId = null;
 
     private final ActivityResultLauncher<PickVisualMediaRequest> galleryLauncher =
             registerForActivityResult(new ActivityResultContracts.PickVisualMedia(), uri -> {
                 if (uri != null) {
                     imageUri = uri;
                     Glide.with(this).load(uri).into(previewImage);
-                    previewImage.setVisibility(ImageView.VISIBLE);
-                    removeImageButton.setVisibility(Button.VISIBLE);
-                    pickImageButton.setVisibility(Button.GONE);
-                    captureImageButton.setVisibility(Button.GONE);
+                    pickImageButton.setText("Remove Image");
                 } else {
                     Toast.makeText(this, "No image selected", Toast.LENGTH_SHORT).show();
                 }
@@ -70,10 +62,7 @@ public class JournalActivity extends AppCompatActivity {
                     if (photo != null) {
                         previewImage.setImageBitmap(photo);
                         imageUri = getImageUri(photo);
-                        previewImage.setVisibility(ImageView.VISIBLE);
-                        removeImageButton.setVisibility(Button.VISIBLE);
-                        pickImageButton.setVisibility(Button.GONE);
-                        captureImageButton.setVisibility(Button.GONE);
+                        pickImageButton.setText("Remove Image");
                     } else {
                         Toast.makeText(this, "Failed to capture photo", Toast.LENGTH_SHORT).show();
                     }
@@ -90,35 +79,35 @@ public class JournalActivity extends AppCompatActivity {
         previewImage = findViewById(R.id.previewImage);
         pickImageButton = findViewById(R.id.pickImageButton);
         captureImageButton = findViewById(R.id.captureImageButton);
-        removeImageButton = findViewById(R.id.removeImageButton);
         saveEntryButton = findViewById(R.id.saveEntryButton);
         bottomNavigation = findViewById(R.id.bottomNavigation);
 
         tagInput = findViewById(R.id.tagInput);
         tagChipGroup = findViewById(R.id.tagChipGroup);
+        previousTagChipGroup = findViewById(R.id.previousTagChipGroup);
         moodHappy = findViewById(R.id.moodHappy);
         moodNeutral = findViewById(R.id.moodNeutral);
         moodSad = findViewById(R.id.moodSad);
 
         user = FirebaseAuth.getInstance().getCurrentUser();
 
-        pickImageButton.setOnClickListener(v -> launchGallery());
+        pickImageButton.setOnClickListener(v -> {
+            if (imageUri != null) {
+                imageUri = null;
+                previewImage.setImageDrawable(null);
+                pickImageButton.setText("Choose from Gallery");
+            } else {
+                launchGallery();
+            }
+        });
+
         captureImageButton.setOnClickListener(v -> launchCamera());
-        removeImageButton.setOnClickListener(v -> removeImage());
         saveEntryButton.setOnClickListener(v -> saveEntry());
 
         setupMoodSelection();
         setupTagInput();
-
-        // Check if editing an existing entry
-        Intent intent = getIntent();
-        if (intent != null && intent.hasExtra("entryId")) {
-            editingEntryId = intent.getStringExtra("entryId");
-            JournalEntry existingEntry = JournalDataManager.getInstance(this).getEntryById(editingEntryId);
-            if (existingEntry != null) {
-                populateFieldsForEditing(existingEntry);
-            }
-        }
+        loadPreviousTags();
+        loadIfEditing();
 
         bottomNavigation.setSelectedItemId(R.id.navigation_journal);
         bottomNavigation.setOnItemSelectedListener(item -> {
@@ -127,12 +116,12 @@ public class JournalActivity extends AppCompatActivity {
                 startActivity(new Intent(this, MainActivity.class));
             } else if (id == R.id.navigation_notes) {
                 startActivity(new Intent(this, NotesActivity.class));
-            } else if (id == R.id.navigation_journal) {
-                return true;
             } else if (id == R.id.navigation_profile) {
                 startActivity(new Intent(this, ProfileActivity.class));
             } else if (id == R.id.navigation_calendar) {
                 startActivity(new Intent(this, CalendarActivity.class));
+            } else if (id == R.id.navigation_journal) {
+                return true;
             } else {
                 return false;
             }
@@ -141,49 +130,50 @@ public class JournalActivity extends AppCompatActivity {
         });
     }
 
-    private void populateFieldsForEditing(JournalEntry entry) {
-        titleInput.setText(entry.getTitle());
-        contentInput.setText(entry.getNote());
-        selectMood(entry.getMood());
+    private void loadIfEditing() {
+        String entryId = getIntent().getStringExtra("entryId");
+        if (entryId != null) {
+            editingEntryId = entryId;
+            JournalDataManager.getInstance(this).fetchEntryById(entryId, entry -> {
+                if (entry != null) {
+                    titleInput.setText(entry.getTitle());
+                    contentInput.setText(entry.getNote());
+                    selectedMood = entry.getMood();
+                    updateMoodUI();
 
-        tags.clear();
-        tagChipGroup.removeAllViews();
-        if (entry.getTags() != null) {
-            for (String tag : entry.getTags()) {
-                tags.add(tag);
-                Chip chip = new Chip(this);
-                chip.setText(tag);
-                chip.setCloseIconVisible(true);
-                chip.setOnCloseIconClickListener(view -> {
-                    tagChipGroup.removeView(chip);
-                    tags.remove(tag);
-                });
-                tagChipGroup.addView(chip);
-            }
-        }
+                    if (entry.getTags() != null) {
+                        for (String tag : entry.getTags()) {
+                            tags.add(tag);
+                            addTagChip(tag);
+                        }
+                    }
 
-        if (entry.getImagePath() != null) {
-            imageUri = Uri.parse(entry.getImagePath());
-            Glide.with(this).load(imageUri).into(previewImage);
-            previewImage.setVisibility(ImageView.VISIBLE);
-            removeImageButton.setVisibility(Button.VISIBLE);
-            pickImageButton.setVisibility(Button.GONE);
-            captureImageButton.setVisibility(Button.GONE);
+                    if (entry.getImagePath() != null) {
+                        imageUri = Uri.parse(entry.getImagePath());
+                        Glide.with(this).load(imageUri).into(previewImage);
+                        pickImageButton.setText("Remove Image");
+                    }
+                }
+            });
         }
+    }
+
+    private void updateMoodUI() {
+        moodHappy.setAlpha(selectedMood == 0 ? 1f : 0.3f);
+        moodNeutral.setAlpha(selectedMood == 1 ? 1f : 0.3f);
+        moodSad.setAlpha(selectedMood == 2 ? 1f : 0.3f);
     }
 
     private void setupMoodSelection() {
         moodHappy.setOnClickListener(v -> selectMood(0));
         moodNeutral.setOnClickListener(v -> selectMood(1));
         moodSad.setOnClickListener(v -> selectMood(2));
-        selectMood(0); // default
+        updateMoodUI();
     }
 
     private void selectMood(int mood) {
         selectedMood = mood;
-        moodHappy.setAlpha(mood == 0 ? 1f : 0.3f);
-        moodNeutral.setAlpha(mood == 1 ? 1f : 0.3f);
-        moodSad.setAlpha(mood == 2 ? 1f : 0.3f);
+        updateMoodUI();
     }
 
     private void setupTagInput() {
@@ -193,14 +183,7 @@ public class JournalActivity extends AppCompatActivity {
                 String tag = tagInput.getText().toString().trim();
                 if (!tag.isEmpty() && !tags.contains(tag)) {
                     tags.add(tag);
-                    Chip chip = new Chip(this);
-                    chip.setText(tag);
-                    chip.setCloseIconVisible(true);
-                    chip.setOnCloseIconClickListener(view -> {
-                        tagChipGroup.removeView(chip);
-                        tags.remove(tag);
-                    });
-                    tagChipGroup.addView(chip);
+                    addTagChip(tag);
                     tagInput.setText("");
                 }
                 return true;
@@ -209,13 +192,36 @@ public class JournalActivity extends AppCompatActivity {
         });
     }
 
-    private void removeImage() {
-        imageUri = null;
-        previewImage.setImageDrawable(null);
-        previewImage.setVisibility(ImageView.GONE);
-        removeImageButton.setVisibility(Button.GONE);
-        pickImageButton.setVisibility(Button.VISIBLE);
-        captureImageButton.setVisibility(Button.VISIBLE);
+    private void addTagChip(String tag) {
+        Chip chip = new Chip(this);
+        chip.setText(tag);
+        chip.setCloseIconVisible(true);
+        chip.setOnCloseIconClickListener(view -> {
+            tagChipGroup.removeView(chip);
+            tags.remove(tag);
+        });
+        tagChipGroup.addView(chip);
+    }
+
+    private void loadPreviousTags() {
+        JournalDataManager.getInstance(this).loadTagsFromFirestore(allTags -> {
+            previousTagChipGroup.removeAllViews();
+            for (String tag : allTags) {
+                if (!tags.contains(tag)) {
+                    Chip chip = new Chip(this);
+                    chip.setText(tag);
+                    chip.setClickable(true);
+                    chip.setCheckable(true);
+                    chip.setOnClickListener(v -> {
+                        if (!tags.contains(tag)) {
+                            tags.add(tag);
+                            addTagChip(tag);
+                        }
+                    });
+                    previousTagChipGroup.addView(chip);
+                }
+            }
+        });
     }
 
     private void launchGallery() {
@@ -250,16 +256,7 @@ public class JournalActivity extends AppCompatActivity {
             return;
         }
 
-        JournalEntry entry;
-        if (editingEntryId != null) {
-            entry = JournalDataManager.getInstance(this).getEntryById(editingEntryId);
-            if (entry == null) {
-                entry = new JournalEntry();
-            }
-        } else {
-            entry = new JournalEntry();
-        }
-
+        JournalEntry entry = new JournalEntry();
         entry.setTitle(title);
         entry.setNote(content);
         entry.setMood(selectedMood);
@@ -267,7 +264,12 @@ public class JournalActivity extends AppCompatActivity {
         entry.setDate(new Date());
         entry.setImagePath(imageUri != null ? imageUri.toString() : null);
 
+        if (editingEntryId != null) {
+            entry.setId(editingEntryId);
+        }
+
         JournalDataManager.getInstance(this).saveEntry(entry);
+        JournalDataManager.getInstance(this).saveTagsToFirestore(tags);
 
         Toast.makeText(this, "Entry saved", Toast.LENGTH_SHORT).show();
         finish();
